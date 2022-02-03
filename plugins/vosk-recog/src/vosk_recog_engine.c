@@ -317,6 +317,8 @@ static apt_bool_t vosk_recog_channel_recognize(mrcp_engine_channel_t *channel, m
 	if(!recog_channel->recognizer) {
 		vosk_recog_engine_t *kaldi_engine = recog_channel->kaldi_engine;
 		recog_channel->recognizer = vosk_recognizer_new(kaldi_engine->model, 8000.0f);
+		vosk_recognizer_set_max_alternatives(recog_channel->recognizer, 5);
+		vosk_recognizer_set_nlsml(recog_channel->recognizer, 1);
 	}
 
 	response->start_line.request_state = MRCP_REQUEST_STATE_INPROGRESS;
@@ -447,7 +449,7 @@ static apt_bool_t vosk_recog_recognition_complete(vosk_recog_channel_t *recog_ch
 			mrcp_generic_header_t *generic_header = mrcp_generic_header_prepare(message);
 			if(generic_header) {
 				/* set content types */
-				apt_string_assign(&generic_header->content_type,"application/json",message->pool);
+				apt_string_assign(&generic_header->content_type,"application/x-nlsml",message->pool);
 				mrcp_generic_header_property_add(message,GENERIC_HEADER_CONTENT_TYPE);
 			}
 		}
