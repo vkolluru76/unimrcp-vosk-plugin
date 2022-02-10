@@ -83,16 +83,16 @@ static const mpf_audio_stream_vtable_t audio_stream_vtable = {
 	NULL
 };
 
-/** Declaration of kaldi recognizer engine */
+/** Declaration of Vosk recognizer engine */
 struct vosk_recog_engine_t {
 	apt_consumer_task_t    *task;
-	VoskModel              *model;
+	VoskBatchModel         *batch_model;
 };
 
-/** Declaration of kaldi recognizer channel */
+/** Declaration of Vosk recognizer channel */
 struct vosk_recog_channel_t {
 	/** Back pointer to engine */
-	vosk_recog_engine_t     *kaldi_engine;
+	vosk_recog_engine_t     *vosk_engine;
 	/** Engine channel base */
 	mrcp_engine_channel_t   *channel;
 
@@ -106,8 +106,10 @@ struct vosk_recog_channel_t {
 	mpf_activity_detector_t *detector;
 	/** File to write utterance to */
 	FILE                    *audio_out;
-	/** Actual recognizer **/
-	VoskRecognizer          *recognizer;
+	/** Recognizer **/
+	VoskBatchRecognizer     *recognizer;
+	/** If we wait for results **/
+	apt_bool_t		finalizing;
 };
 
 typedef enum {
@@ -116,7 +118,7 @@ typedef enum {
 	vosk_recog_MSG_REQUEST_PROCESS
 } vosk_recog_msg_type_e;
 
-/** Declaration of kaldi recognizer task message */
+/** Declaration of Vosk recognizer task message */
 struct vosk_recog_msg_t {
 	vosk_recog_msg_type_e  type;
 	mrcp_engine_channel_t *channel; 
@@ -139,32 +141,33 @@ MRCP_PLUGIN_LOG_SOURCE_IMPLEMENT(RECOG_PLUGIN,"RECOG-PLUGIN")
 /** Use custom log source mark */
 #define RECOG_LOG_MARK   APT_LOG_MARK_DECLARE(RECOG_PLUGIN)
 
-/** Create kaldi recognizer engine */
+/** Create Vosk recognizer engine */
 MRCP_PLUGIN_DECLARE(mrcp_engine_t*) mrcp_plugin_create(apr_pool_t *pool)
 {
-	vosk_recog_engine_t *kaldi_engine = (vosk_recog_engine_t*)apr_palloc(pool,sizeof(vosk_recog_engine_t));
+	vosk_recog_engine_t *engine = (vosk_recog_engine_t*)apr_palloc(pool,sizeof(vosk_recog_engine_t));
 	apt_task_t *task;
 	apt_task_vtable_t *vtable;
 	apt_task_msg_pool_t *msg_pool;
 
 	msg_pool = apt_task_msg_pool_create_dynamic(sizeof(vosk_recog_msg_t),pool);
-	kaldi_engine->task = apt_consumer_task_create(kaldi_engine,msg_pool,pool);
-	if(!kaldi_engine->task) {
+	engine->task = apt_consumer_task_create(engine,msg_pool,pool);
+	if(!engine->task) {
 		return NULL;
 	}
-	task = apt_consumer_task_base_get(kaldi_engine->task);
+	task = apt_consumer_task_base_get(engine->task);
 	apt_task_name_set(task,RECOG_ENGINE_TASK_NAME);
 	vtable = apt_task_vtable_get(task);
 	if(vtable) {
 		vtable->process_msg = vosk_recog_msg_process;
 	}
 
-	kaldi_engine->model = vosk_model_new("/opt/kaldi/model");
+	vosk_gpu_init();
+	engine->batch_model = vosk_batch_model_new();
 
 	/* create engine base */
 	return mrcp_engine_create(
 				MRCP_RECOGNIZER_RESOURCE,  /* MRCP resource identifier */
-				kaldi_engine,               /* object to associate */
+				engine,               /* object to associate */
 				&engine_vtable,            /* virtual methods table of engine */
 				pool);                     /* pool to allocate memory from */
 }
@@ -172,15 +175,15 @@ MRCP_PLUGIN_DECLARE(mrcp_engine_t*) mrcp_plugin_create(apr_pool_t *pool)
 /** Destroy recognizer engine */
 static apt_bool_t vosk_recog_engine_destroy(mrcp_engine_t *engine)
 {
-	vosk_recog_engine_t *kaldi_engine = (vosk_recog_engine_t*)engine->obj;
-	if(kaldi_engine->task) {
-		apt_task_t *task = apt_consumer_task_base_get(kaldi_engine->task);
+	vosk_recog_engine_t *vosk_engine = (vosk_recog_engine_t*)engine->obj;
+	if(vosk_engine->task) {
+		apt_task_t *task = apt_consumer_task_base_get(vosk_engine->task);
 		apt_task_destroy(task);
-		kaldi_engine->task = NULL;
+		vosk_engine->task = NULL;
 	}
-	if (kaldi_engine->model) {
-		vosk_model_free(kaldi_engine->model);
-		kaldi_engine->model = NULL;
+	if (vosk_engine->batch_model) {
+		vosk_batch_model_free(vosk_engine->batch_model);
+		vosk_engine->batch_model = NULL;
 	}
 	return TRUE;
 }
@@ -188,9 +191,9 @@ static apt_bool_t vosk_recog_engine_destroy(mrcp_engine_t *engine)
 /** Open recognizer engine */
 static apt_bool_t vosk_recog_engine_open(mrcp_engine_t *engine)
 {
-	vosk_recog_engine_t *kaldi_engine = (vosk_recog_engine_t*)engine->obj;
-	if(kaldi_engine->task) {
-		apt_task_t *task = apt_consumer_task_base_get(kaldi_engine->task);
+	vosk_recog_engine_t *vosk_engine = (vosk_recog_engine_t*)engine->obj;
+	if(vosk_engine->task) {
+		apt_task_t *task = apt_consumer_task_base_get(vosk_engine->task);
 		apt_task_start(task);
 	}
 	return mrcp_engine_open_respond(engine,TRUE);
@@ -199,9 +202,9 @@ static apt_bool_t vosk_recog_engine_open(mrcp_engine_t *engine)
 /** Close recognizer engine */
 static apt_bool_t vosk_recog_engine_close(mrcp_engine_t *engine)
 {
-	vosk_recog_engine_t *kaldi_engine = (vosk_recog_engine_t*)engine->obj;
-	if(kaldi_engine->task) {
-		apt_task_t *task = apt_consumer_task_base_get(kaldi_engine->task);
+	vosk_recog_engine_t *vosk_engine = (vosk_recog_engine_t*)engine->obj;
+	if(vosk_engine->task) {
+		apt_task_t *task = apt_consumer_task_base_get(vosk_engine->task);
 		apt_task_terminate(task,TRUE);
 	}
 	return mrcp_engine_close_respond(engine);
@@ -212,14 +215,15 @@ static mrcp_engine_channel_t* vosk_recog_engine_channel_create(mrcp_engine_t *en
 	mpf_stream_capabilities_t *capabilities;
 	mpf_termination_t *termination; 
 
-	/* create kaldi recog channel */
+	/* create Vosk recog channel */
 	vosk_recog_channel_t *recog_channel = (vosk_recog_channel_t*)apr_palloc(pool,sizeof(vosk_recog_channel_t));
-	recog_channel->kaldi_engine = (vosk_recog_engine_t*)engine->obj;
-        recog_channel->recognizer = NULL;
+	recog_channel->vosk_engine =          (vosk_recog_engine_t*)engine->obj;
 	recog_channel->recog_request = NULL;
 	recog_channel->stop_response = NULL;
 	recog_channel->detector = mpf_activity_detector_create(pool);
 	recog_channel->audio_out = NULL;
+        recog_channel->recognizer = NULL;
+	recog_channel->finalizing = FALSE;
 
 	capabilities = mpf_sink_stream_capabilities_create(pool);
 	mpf_codec_capabilities_add(
@@ -314,11 +318,9 @@ static apt_bool_t vosk_recog_channel_recognize(mrcp_engine_channel_t *channel, m
 			}
 		}
 	}
-	if(!recog_channel->recognizer) {
-		vosk_recog_engine_t *kaldi_engine = recog_channel->kaldi_engine;
-		recog_channel->recognizer = vosk_recognizer_new(kaldi_engine->model, 8000.0f);
-		vosk_recognizer_set_max_alternatives(recog_channel->recognizer, 5);
-		vosk_recognizer_set_nlsml(recog_channel->recognizer, 1);
+	if (!recog_channel->recognizer) {
+		recog_channel->recognizer = vosk_batch_recognizer_new(recog_channel->vosk_engine->batch_model, 8000.0f);
+                vosk_batch_recognizer_set_nlsml(recog_channel->recognizer, 1);
 	}
 
 	response->start_line.request_state = MRCP_REQUEST_STATE_INPROGRESS;
@@ -397,7 +399,7 @@ static apt_bool_t vosk_recog_stream_close(mpf_audio_stream_t *stream)
 	return TRUE;
 }
 
-/* Raise kaldi START-OF-INPUT event */
+/* Raise Vosk START-OF-INPUT event */
 static apt_bool_t vosk_recog_start_of_input(vosk_recog_channel_t *recog_channel)
 {
 	/* create START-OF-INPUT event */
@@ -416,7 +418,7 @@ static apt_bool_t vosk_recog_start_of_input(vosk_recog_channel_t *recog_channel)
 }
 
 
-/* Raise kaldi RECOGNITION-COMPLETE event */
+/* Raise Vosk RECOGNITION-COMPLETE event */
 static apt_bool_t vosk_recog_recognition_complete(vosk_recog_channel_t *recog_channel, mrcp_recog_completion_cause_e cause)
 {
 	mrcp_recog_header_t *recog_header;
@@ -441,8 +443,11 @@ static apt_bool_t vosk_recog_recognition_complete(vosk_recog_channel_t *recog_ch
 
 	if(cause == RECOGNIZER_COMPLETION_CAUSE_SUCCESS) {
 		{
-			const char *result = vosk_recognizer_result(recog_channel->recognizer);
+			const char *result = vosk_batch_recognizer_front_result(recog_channel->recognizer);
 			apt_string_assign_n(&message->body,result,strlen(result),message->pool);
+			apt_log(RECOG_LOG_MARK,APT_PRIO_INFO,"Sending results !!!!! " APT_SIDRES_FMT " '%s' ",
+				MRCP_MESSAGE_SIDRES(recog_channel->recog_request), result);
+			vosk_batch_recognizer_pop(recog_channel->recognizer);
 		}
 		{
 			/* get/allocate generic header */
@@ -483,7 +488,8 @@ static apt_bool_t vosk_recog_stream_write(mpf_audio_stream_t *stream, const mpf_
 			case MPF_DETECTOR_EVENT_INACTIVITY:
 				apt_log(RECOG_LOG_MARK,APT_PRIO_INFO,"Detected Voice Inactivity " APT_SIDRES_FMT,
 					MRCP_MESSAGE_SIDRES(recog_channel->recog_request));
-				vosk_recog_recognition_complete(recog_channel,RECOGNIZER_COMPLETION_CAUSE_SUCCESS);
+				vosk_batch_recognizer_finish_stream(recog_channel->recognizer);
+				recog_channel->finalizing = TRUE;
 				break;
 			case MPF_DETECTOR_EVENT_NOINPUT:
 				apt_log(RECOG_LOG_MARK,APT_PRIO_INFO,"Detected Noinput " APT_SIDRES_FMT,
@@ -516,8 +522,15 @@ static apt_bool_t vosk_recog_stream_write(mpf_audio_stream_t *stream, const mpf_
 			fwrite(frame->codec_frame.buffer,1,frame->codec_frame.size,recog_channel->audio_out);
 		}
 		if(recog_channel->recognizer) {
-			if (vosk_recognizer_accept_waveform(recog_channel->recognizer, (const char*)frame->codec_frame.buffer, frame->codec_frame.size)) {
-				vosk_recog_recognition_complete(recog_channel,RECOGNIZER_COMPLETION_CAUSE_SUCCESS);
+			if (recog_channel->finalizing) {
+				if (vosk_batch_recognizer_get_pending_chunks(recog_channel->recognizer) == 0 && 
+				    strlen(vosk_batch_recognizer_front_result(recog_channel->recognizer)) != 0) {
+					vosk_recog_recognition_complete(recog_channel,RECOGNIZER_COMPLETION_CAUSE_SUCCESS);
+				}
+			} else {
+				vosk_batch_recognizer_accept_waveform(recog_channel->recognizer,
+			                                      (const char*)frame->codec_frame.buffer,
+			                                      frame->codec_frame.size);
 			}
 		}
 	}
@@ -527,18 +540,18 @@ static apt_bool_t vosk_recog_stream_write(mpf_audio_stream_t *stream, const mpf_
 static apt_bool_t vosk_recog_msg_signal(vosk_recog_msg_type_e type, mrcp_engine_channel_t *channel, mrcp_message_t *request)
 {
 	apt_bool_t status = FALSE;
-	vosk_recog_channel_t *kaldi_channel = (vosk_recog_channel_t*)channel->method_obj;
-	vosk_recog_engine_t *kaldi_engine = kaldi_channel->kaldi_engine;
-	apt_task_t *task = apt_consumer_task_base_get(kaldi_engine->task);
+	vosk_recog_channel_t *recog_channel = (vosk_recog_channel_t*)channel->method_obj;
+	vosk_recog_engine_t *vosk_engine = recog_channel->vosk_engine;
+	apt_task_t *task = apt_consumer_task_base_get(vosk_engine->task);
 	apt_task_msg_t *msg = apt_task_msg_get(task);
 	if(msg) {
-		vosk_recog_msg_t *kaldi_msg;
+		vosk_recog_msg_t *vosk_msg;
 		msg->type = TASK_MSG_USER;
-		kaldi_msg = (vosk_recog_msg_t*) msg->data;
+		vosk_msg = (vosk_recog_msg_t*) msg->data;
 
-		kaldi_msg->type = type;
-		kaldi_msg->channel = channel;
-		kaldi_msg->request = request;
+		vosk_msg->type = type;
+		vosk_msg->channel = channel;
+		vosk_msg->request = request;
 		status = apt_task_msg_signal(task,msg);
 	}
 	return status;
@@ -546,30 +559,30 @@ static apt_bool_t vosk_recog_msg_signal(vosk_recog_msg_type_e type, mrcp_engine_
 
 static apt_bool_t vosk_recog_msg_process(apt_task_t *task, apt_task_msg_t *msg)
 {
-	vosk_recog_msg_t *kaldi_msg = (vosk_recog_msg_t*)msg->data;
-	switch(kaldi_msg->type) {
+	vosk_recog_msg_t *vosk_msg = (vosk_recog_msg_t*)msg->data;
+	switch(vosk_msg->type) {
 		case vosk_recog_MSG_OPEN_CHANNEL:
 			/* open channel and send asynch response */
-			mrcp_engine_channel_open_respond(kaldi_msg->channel,TRUE);
+			mrcp_engine_channel_open_respond(vosk_msg->channel,TRUE);
 			break;
 		case vosk_recog_MSG_CLOSE_CHANNEL:
 		{
 			/* close channel, make sure there is no activity and send asynch response */
-			vosk_recog_channel_t *recog_channel = (vosk_recog_channel_t*)kaldi_msg->channel->method_obj;
+			vosk_recog_channel_t *recog_channel = (vosk_recog_channel_t*)vosk_msg->channel->method_obj;
 			if(recog_channel->audio_out) {
 				fclose(recog_channel->audio_out);
 				recog_channel->audio_out = NULL;
 			}
 			if(recog_channel->recognizer) {
-				vosk_recognizer_free(recog_channel->recognizer);
+                                vosk_batch_recognizer_free(recog_channel->recognizer);
 				recog_channel->recognizer = NULL;
 			}
 
-			mrcp_engine_channel_close_respond(kaldi_msg->channel);
+			mrcp_engine_channel_close_respond(vosk_msg->channel);
 			break;
 		}
 		case vosk_recog_MSG_REQUEST_PROCESS:
-			vosk_recog_channel_request_dispatch(kaldi_msg->channel,kaldi_msg->request);
+			vosk_recog_channel_request_dispatch(vosk_msg->channel,vosk_msg->request);
 			break;
 		default:
 			break;
