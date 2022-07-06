@@ -33,6 +33,8 @@
 #include "apt_log.h"
 #include "vosk_api.h"
 
+#include "stdlib.h"
+
 
 #define RECOG_ENGINE_TASK_NAME "Vosk Recog Engine"
 
@@ -108,6 +110,13 @@ struct vosk_recog_channel_t {
 	FILE                    *audio_out;
 	/** Actual recognizer **/
 	VoskRecognizer          *recognizer;
+
+	/** Start input sent flag **/
+	apt_bool_t				start_input_msg_sent;
+
+	/** dtmf buffer to store **/
+	 const char 			*dtmf_buffer;
+
 };
 
 typedef enum {
@@ -313,6 +322,7 @@ static apt_bool_t vosk_recog_channel_recognize(mrcp_engine_channel_t *channel, m
 				apt_log(RECOG_LOG_MARK,APT_PRIO_WARNING,"Failed to Open Utterance Output File [%s] for Writing",file_path);
 			}
 		}
+
 	}
 	if(!recog_channel->recognizer) {
 		vosk_recog_engine_t *kaldi_engine = recog_channel->kaldi_engine;
@@ -325,6 +335,8 @@ static apt_bool_t vosk_recog_channel_recognize(mrcp_engine_channel_t *channel, m
 	/* send asynchronous response */
 	mrcp_engine_channel_message_send(channel,response);
 	recog_channel->recog_request = request;
+	recog_channel->start_input_msg_sent = FALSE;
+	recog_channel->dtmf_buffer = "";
 	return TRUE;
 }
 
@@ -415,6 +427,13 @@ static apt_bool_t vosk_recog_start_of_input(vosk_recog_channel_t *recog_channel)
 	return mrcp_engine_channel_message_send(recog_channel->channel,message);
 }
 
+static const char* create_dtmf_body_response(vosk_recog_channel_t *recog_channel)
+{
+
+	char* dtmf_body = apr_psprintf(recog_channel->channel->pool,"<?xml version=\"1.0\"?>\n<result grammar=\"default\">\n\t<interpretation grammar=\"default\" confidence=\"100.0\">\n\t\t<input mode=\"dtmf\">%s</input>\n\t\t<instance>%s</instance>\n\t</interpretation>\n</result>",recog_channel->dtmf_buffer,recog_channel->dtmf_buffer);
+	return dtmf_body;
+}
+
 
 /* Raise kaldi RECOGNITION-COMPLETE event */
 static apt_bool_t vosk_recog_recognition_complete(vosk_recog_channel_t *recog_channel, mrcp_recog_completion_cause_e cause)
@@ -433,6 +452,8 @@ static apt_bool_t vosk_recog_recognition_complete(vosk_recog_channel_t *recog_ch
 	recog_header = (mrcp_recog_header_t*)mrcp_resource_header_prepare(message);
 	if(recog_header) {
 		/* set completion cause */
+		if (strlen(recog_channel->dtmf_buffer) > 0)
+			cause = RECOGNIZER_COMPLETION_CAUSE_SUCCESS;
 		recog_header->completion_cause = cause;
 		mrcp_resource_header_property_add(message,RECOGNIZER_HEADER_COMPLETION_CAUSE);
 	}
@@ -441,8 +462,16 @@ static apt_bool_t vosk_recog_recognition_complete(vosk_recog_channel_t *recog_ch
 
 	if(cause == RECOGNIZER_COMPLETION_CAUSE_SUCCESS) {
 		{
-			const char *result = vosk_recognizer_result(recog_channel->recognizer);
-			apt_string_assign_n(&message->body,result,strlen(result),message->pool);
+			if (strlen(recog_channel->dtmf_buffer) > 0){
+				apt_log(RECOG_LOG_MARK,APT_PRIO_INFO,"Dtmf data is %s ",recog_channel->dtmf_buffer);
+				const char* dtmf_result = create_dtmf_body_response(recog_channel);
+				apt_string_assign_n(&message->body,dtmf_result,strlen(dtmf_result),message->pool);
+
+			}
+			else {
+				const char *result = vosk_recognizer_result(recog_channel->recognizer);
+				apt_string_assign_n(&message->body,result,strlen(result),message->pool);
+			}
 		}
 		{
 			/* get/allocate generic header */
@@ -456,6 +485,7 @@ static apt_bool_t vosk_recog_recognition_complete(vosk_recog_channel_t *recog_ch
 	}
 
 	recog_channel->recog_request = NULL;
+	recog_channel->dtmf_buffer = NULL;
 	/* send asynch event */
 	return mrcp_engine_channel_message_send(recog_channel->channel,message);
 }
@@ -502,12 +532,72 @@ static apt_bool_t vosk_recog_stream_write(mpf_audio_stream_t *stream, const mpf_
 					apt_log(RECOG_LOG_MARK,APT_PRIO_INFO,"Detected Start of Event " APT_SIDRES_FMT " id:%d",
 						MRCP_MESSAGE_SIDRES(recog_channel->recog_request),
 						frame->event_frame.event_id);
+					recog_channel->timers_started = TRUE;
 				}
 				else if(frame->marker == MPF_MARKER_END_OF_EVENT) {
 					apt_log(RECOG_LOG_MARK,APT_PRIO_INFO,"Detected End of Event " APT_SIDRES_FMT " id:%d duration:%d ts",
 						MRCP_MESSAGE_SIDRES(recog_channel->recog_request),
 						frame->event_frame.event_id,
 						frame->event_frame.duration);
+					if (!recog_channel->start_input_msg_sent) {
+						vosk_recog_start_of_input(recog_channel);
+						recog_channel->start_input_msg_sent = TRUE;
+					}
+
+					// append the data to the dtmf string recognized
+					switch (frame->event_frame.event_id) {
+					case 0:
+						recog_channel->dtmf_buffer = apr_pstrcat(recog_channel->channel->pool, recog_channel->dtmf_buffer,"0 " , NULL);
+						break;
+					case 1:
+						recog_channel->dtmf_buffer = apr_pstrcat(recog_channel->channel->pool, recog_channel->dtmf_buffer,"1 " , NULL);
+						break;
+					case 2:
+						recog_channel->dtmf_buffer = apr_pstrcat(recog_channel->channel->pool, recog_channel->dtmf_buffer,"2 " , NULL);
+						break;
+					case 3:
+						recog_channel->dtmf_buffer = apr_pstrcat(recog_channel->channel->pool, recog_channel->dtmf_buffer,"3 " , NULL);
+						break;
+					case 4:
+						recog_channel->dtmf_buffer = apr_pstrcat(recog_channel->channel->pool, recog_channel->dtmf_buffer,"4 " , NULL);
+						break;
+					case 5:
+						recog_channel->dtmf_buffer = apr_pstrcat(recog_channel->channel->pool, recog_channel->dtmf_buffer,"5 " , NULL);
+						break;
+					case 6:
+						recog_channel->dtmf_buffer = apr_pstrcat(recog_channel->channel->pool, recog_channel->dtmf_buffer,"6 " , NULL);
+						break;
+					case 7:
+						recog_channel->dtmf_buffer = apr_pstrcat(recog_channel->channel->pool, recog_channel->dtmf_buffer,"7 " , NULL);
+						break;
+					case 8:
+						recog_channel->dtmf_buffer = apr_pstrcat(recog_channel->channel->pool, recog_channel->dtmf_buffer,"8 " , NULL);
+						break;
+					case 9:
+						recog_channel->dtmf_buffer = apr_pstrcat(recog_channel->channel->pool, recog_channel->dtmf_buffer,"9 " , NULL);
+						break;
+					case 10:
+						recog_channel->dtmf_buffer = apr_pstrcat(recog_channel->channel->pool, recog_channel->dtmf_buffer,"* " , NULL);
+						break;
+					case 11:
+						recog_channel->dtmf_buffer = apr_pstrcat(recog_channel->channel->pool, recog_channel->dtmf_buffer,"# " , NULL);
+						break;
+					case 12:
+						recog_channel->dtmf_buffer = apr_pstrcat(recog_channel->channel->pool, recog_channel->dtmf_buffer,"A " , NULL);
+						break;
+					case 13:
+						recog_channel->dtmf_buffer = apr_pstrcat(recog_channel->channel->pool, recog_channel->dtmf_buffer,"B " , NULL);
+						break;
+					case 14:
+						recog_channel->dtmf_buffer = apr_pstrcat(recog_channel->channel->pool, recog_channel->dtmf_buffer,"C " , NULL);
+						break;
+					case 15:
+						recog_channel->dtmf_buffer = apr_pstrcat(recog_channel->channel->pool, recog_channel->dtmf_buffer,"D " , NULL);
+						break;
+
+					}
+					//vosk_recog_append_dtmf_buffer_to_utterance(recog_channel, frame->event_frame.event_id);
+
 				}
 			}
 		}
@@ -523,6 +613,7 @@ static apt_bool_t vosk_recog_stream_write(mpf_audio_stream_t *stream, const mpf_
 	}
 	return TRUE;
 }
+
 
 static apt_bool_t vosk_recog_msg_signal(vosk_recog_msg_type_e type, mrcp_engine_channel_t *channel, mrcp_message_t *request)
 {
@@ -563,6 +654,7 @@ static apt_bool_t vosk_recog_msg_process(apt_task_t *task, apt_task_msg_t *msg)
 			if(recog_channel->recognizer) {
 				vosk_recognizer_free(recog_channel->recognizer);
 				recog_channel->recognizer = NULL;
+				recog_channel->dtmf_buffer = NULL;
 			}
 
 			mrcp_engine_channel_close_respond(kaldi_msg->channel);
