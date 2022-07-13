@@ -533,12 +533,6 @@ static apt_bool_t vosk_recog_stream_write(mpf_audio_stream_t *stream, const mpf_
 						MRCP_MESSAGE_SIDRES(recog_channel->recog_request),
 						frame->event_frame.event_id);
 					recog_channel->timers_started = TRUE;
-				}
-				else if(frame->marker == MPF_MARKER_END_OF_EVENT) {
-					apt_log(RECOG_LOG_MARK,APT_PRIO_INFO,"Detected End of Event " APT_SIDRES_FMT " id:%d duration:%d ts",
-						MRCP_MESSAGE_SIDRES(recog_channel->recog_request),
-						frame->event_frame.event_id,
-						frame->event_frame.duration);
 					if (!recog_channel->start_input_msg_sent) {
 						vosk_recog_start_of_input(recog_channel);
 						recog_channel->start_input_msg_sent = TRUE;
@@ -596,6 +590,13 @@ static apt_bool_t vosk_recog_stream_write(mpf_audio_stream_t *stream, const mpf_
 						break;
 
 					}
+
+				}
+				else if(frame->marker == MPF_MARKER_END_OF_EVENT) {
+					apt_log(RECOG_LOG_MARK,APT_PRIO_INFO,"Detected End of Event " APT_SIDRES_FMT " id:%d duration:%d ts",
+						MRCP_MESSAGE_SIDRES(recog_channel->recog_request),
+						frame->event_frame.event_id,
+						frame->event_frame.duration);
 					//vosk_recog_append_dtmf_buffer_to_utterance(recog_channel, frame->event_frame.event_id);
 
 				}
