@@ -533,10 +533,10 @@ static apt_bool_t vosk_recog_stream_write(mpf_audio_stream_t *stream, const mpf_
 						MRCP_MESSAGE_SIDRES(recog_channel->recog_request),
 						frame->event_frame.event_id);
 					recog_channel->timers_started = TRUE;
-					//if (!recog_channel->start_input_msg_sent) {
-					//	vosk_recog_start_of_input(recog_channel);
-					//	recog_channel->start_input_msg_sent = TRUE;
-					//}
+					if (!recog_channel->start_input_msg_sent) {
+						vosk_recog_start_of_input(recog_channel);
+						recog_channel->start_input_msg_sent = TRUE;
+					}
 
 					// append the data to the dtmf string recognized
 					switch (frame->event_frame.event_id) {
