@@ -418,6 +418,7 @@ static apt_bool_t vosk_recog_start_of_input(vosk_recog_channel_t *recog_channel)
 						RECOGNIZER_START_OF_INPUT,
 						recog_channel->recog_request->pool);
 	if(!message) {
+		apt_log(RECOG_LOG_MARK,APT_PRIO_INFO,"Unable to create message for start_of_input"); 
 		return FALSE;
 	}
 
