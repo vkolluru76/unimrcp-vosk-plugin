@@ -85,6 +85,9 @@ static const mpf_audio_stream_vtable_t audio_stream_vtable = {
 	NULL
 };
 
+static apt_bool_t vosk_recog_recognition_complete(vosk_recog_channel_t *recog_channel, mrcp_recog_completion_cause_e cause);
+
+
 /** Declaration of kaldi recognizer engine */
 struct vosk_recog_engine_t {
 	apt_consumer_task_t    *task;
@@ -116,6 +119,10 @@ struct vosk_recog_channel_t {
 
 	/** dtmf buffer to store **/
 	 const char 			*dtmf_buffer;
+
+	 /** Inactivity timer  */
+	 apt_timer_t       *dtmf_interdigit_timeout_timer;
+
 
 };
 
@@ -279,6 +286,19 @@ static apt_bool_t vosk_recog_channel_request_process(mrcp_engine_channel_t *chan
 	return vosk_recog_msg_signal(vosk_recog_MSG_REQUEST_PROCESS,channel,request);
 }
 
+/* Timer callback */
+static void vosk_recog_channel_interdigit_timeout_timer_proc(apt_timer_t *timer, void *obj)
+{
+	vosk_recog_channel_t *recog_channel = obj;
+	if(!recog_channel) return;
+
+	if(recog_channel->dtmf_interdigit_timeout_timer == timer) {
+		apt_log(RECOG_LOG_MARK,APT_PRIO_WARNING,"Interdigit Timeout Triggerred");
+		vosk_recog_recognition_complete(recog_channel,RECOGNIZER_COMPLETION_CAUSE_SUCCESS);
+	}
+}
+
+
 /** Process RECOGNIZE request */
 static apt_bool_t vosk_recog_channel_recognize(mrcp_engine_channel_t *channel, mrcp_message_t *request, mrcp_message_t *response)
 {
@@ -337,6 +357,16 @@ static apt_bool_t vosk_recog_channel_recognize(mrcp_engine_channel_t *channel, m
 	recog_channel->recog_request = request;
 	recog_channel->start_input_msg_sent = FALSE;
 	recog_channel->dtmf_buffer = "";
+
+	recog_channel->dtmf_interdigit_timeout_timer = NULL;
+	recog_channel->dtmf_interdigit_timeout_timer = apt_consumer_task_timer_create(
+													recog_channel->kaldi_engine->task,
+													vosk_recog_channel_interdigit_timeout_timer_proc,
+													recog_channel,
+													channel->pool);
+	apt_log(RECOG_LOG_MARK,APT_PRIO_INFO,"Successfully Created interdigit timeout timer");
+
+
 	return TRUE;
 }
 
@@ -428,7 +458,7 @@ static apt_bool_t vosk_recog_start_of_input(vosk_recog_channel_t *recog_channel)
 	return mrcp_engine_channel_message_send(recog_channel->channel,message);
 }
 
-static const char* create_dtmf_body_response(vosk_recog_channel_t *recog_channel)
+static const char* vosk_recog_create_dtmf_body_response(vosk_recog_channel_t *recog_channel)
 {
 
 	char* dtmf_body = apr_psprintf(recog_channel->channel->pool,"<?xml version=\"1.0\"?>\n<result grammar=\"default\">\n\t<interpretation grammar=\"default\" confidence=\"100.0\">\n\t\t<input mode=\"dtmf\">%s</input>\n\t\t<instance>%s</instance>\n\t</interpretation>\n</result>",recog_channel->dtmf_buffer,recog_channel->dtmf_buffer);
@@ -465,7 +495,7 @@ static apt_bool_t vosk_recog_recognition_complete(vosk_recog_channel_t *recog_ch
 		{
 			if (strlen(recog_channel->dtmf_buffer) > 0){
 				apt_log(RECOG_LOG_MARK,APT_PRIO_INFO,"Dtmf data is %s ",recog_channel->dtmf_buffer);
-				const char* dtmf_result = create_dtmf_body_response(recog_channel);
+				const char* dtmf_result = vosk_recog_create_dtmf_body_response(recog_channel);
 				apt_string_assign_n(&message->body,dtmf_result,strlen(dtmf_result),message->pool);
 
 			}
@@ -592,6 +622,12 @@ static apt_bool_t vosk_recog_stream_write(mpf_audio_stream_t *stream, const mpf_
 
 					}
 
+					/* (re)set inactivity timer on every message received */
+					if(recog_channel->dtmf_interdigit_timeout_timer) {
+						apt_log(RECOG_LOG_MARK,APT_PRIO_INFO,"Setting the timer for 3 seconds");
+						apt_timer_set(recog_channel->dtmf_interdigit_timeout_timer,3000);
+					}
+
 				}
 				else if(frame->marker == MPF_MARKER_END_OF_EVENT) {
 					apt_log(RECOG_LOG_MARK,APT_PRIO_INFO,"Detected End of Event " APT_SIDRES_FMT " id:%d duration:%d ts",
@@ -657,6 +693,7 @@ static apt_bool_t vosk_recog_msg_process(apt_task_t *task, apt_task_msg_t *msg)
 				vosk_recognizer_free(recog_channel->recognizer);
 				recog_channel->recognizer = NULL;
 				recog_channel->dtmf_buffer = NULL;
+				recog_channel->dtmf_interdigit_timeout_timer = NULL;
 			}
 
 			mrcp_engine_channel_close_respond(kaldi_msg->channel);
