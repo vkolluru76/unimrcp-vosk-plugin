@@ -23,9 +23,7 @@ struct apt_consumer_task_t {
 	void              *obj;
 	apt_task_t        *base;
 	apr_queue_t       *msg_queue;
-#if APR_HAS_QUEUE_TIMEOUT
 	apt_timer_queue_t *timer_queue;
-#endif
 };
 
 static apt_bool_t apt_consumer_task_msg_signal(apt_task_t *task, apt_task_msg_t *msg);
@@ -55,12 +53,10 @@ APT_DECLARE(apt_consumer_task_t*) apt_consumer_task_create(
 		vtable->signal_msg = apt_consumer_task_msg_signal;
 	}
 
-#if APR_HAS_QUEUE_TIMEOUT
 	apt_log(APT_LOG_MARK,APT_PRIO_DEBUG,"Creating the timer queue");
 	consumer_task->timer_queue = apt_timer_queue_create(pool);
 	if (consumer_task->timer_queue)
 		apt_log(APT_LOG_MARK,APT_PRIO_DEBUG,"Successfully created the timer queue [0x%x]", consumer_task->timer_queue);
-#endif
 
 	return consumer_task;
 }
@@ -86,12 +82,8 @@ APT_DECLARE(apt_timer_t*) apt_consumer_task_timer_create(
 									void *obj, 
 									apr_pool_t *pool)
 {
-#if APR_HAS_QUEUE_TIMEOUT
 	apt_log(APT_LOG_MARK,APT_PRIO_DEBUG,"Creating the consumer task Timer...");
 	return apt_timer_create(task->timer_queue,proc,obj,pool);
-#else
-	return NULL;
-#endif
 }
 
 static apt_bool_t apt_consumer_task_msg_signal(apt_task_t *task, apt_task_msg_t *msg)
@@ -106,11 +98,9 @@ static apt_bool_t apt_consumer_task_run(apt_task_t *task)
 	void *msg;
 	apt_bool_t *running;
 	apt_consumer_task_t *consumer_task;
-#if APR_HAS_QUEUE_TIMEOUT
 	apr_interval_time_t timeout;
 	apr_uint32_t queue_timeout;
 	apr_time_t time_now, time_last = 0;
-#endif
 	const char *task_name;
 
 	consumer_task = apt_task_object_get(task);
@@ -125,7 +115,6 @@ static apt_bool_t apt_consumer_task_run(apt_task_t *task)
 	}
 
 	while(*running) {
-#if APR_HAS_QUEUE_TIMEOUT
 		if(apt_timer_queue_timeout_get(consumer_task->timer_queue,&queue_timeout) == TRUE) {
 			timeout = (apr_interval_time_t)queue_timeout * 1000;
 			time_last = apr_time_now();
@@ -139,10 +128,6 @@ static apt_bool_t apt_consumer_task_run(apt_task_t *task)
 			apt_log(APT_LOG_MARK,APT_PRIO_DEBUG,"Wait for Consumer Task Messages [%s]",task_name);
 			rv = apr_queue_pop(consumer_task->msg_queue,&msg);
 		}
-#else
-		apt_log(APT_LOG_MARK,APT_PRIO_DEBUG,"Wait for Consumer Task Messages Outside of APR_HAS_QUEUE_TIMEOUT [%s]",task_name);
-		rv = apr_queue_pop(consumer_task->msg_queue,&msg);
-#endif
 		if(rv == APR_SUCCESS) {
 			if(msg) {
 				apt_task_msg_t *task_msg = msg;
@@ -153,7 +138,6 @@ static apt_bool_t apt_consumer_task_run(apt_task_t *task)
 			apt_log(APT_LOG_MARK,APT_PRIO_WARNING,"Failed to Pop Message [%s] status: %d",task_name,rv);
 		}
 
-#if APR_HAS_QUEUE_TIMEOUT
 		if(timeout != -1) {
 			time_now = apr_time_now();
 			if(time_now > time_last) {
@@ -166,7 +150,6 @@ static apt_bool_t apt_consumer_task_run(apt_task_t *task)
 				}
 			}
 		}
-#endif
 	}
 	return TRUE;
 }
