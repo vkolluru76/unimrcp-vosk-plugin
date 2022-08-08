@@ -127,21 +127,25 @@ APT_DECLARE(apt_bool_t) apt_timer_queue_timeout_get(apt_timer_queue_t *timer_que
 
 	/* clear reset flag, if set */
 	if(timer_queue->reset == TRUE) {
+		apt_log(APT_LOG_MARK,APT_PRIO_DEBUG,"Timer Reset flag is set. so returning false");
 		timer_queue->reset = FALSE;
 	}
 
 	/* is queue empty */
 	if(APR_RING_EMPTY(&timer_queue->head, apt_timer_t, link)) {
+		apt_log(APT_LOG_MARK,APT_PRIO_DEBUG,"Timer queue empty. so returning false");
 		return FALSE;
 	}
 
 	/* get first node (timer) */
 	timer = APR_RING_FIRST(&timer_queue->head);
 	if(!timer) {
+		apt_log(APT_LOG_MARK,APT_PRIO_DEBUG,"Couldn't find the timer. so returning false");
 		return FALSE;
 	}
 
 	*timeout = timer->scheduled_time - timer_queue->elapsed_time;
+
 	return TRUE;
 }
 
