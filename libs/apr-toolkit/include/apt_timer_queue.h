@@ -26,6 +26,8 @@
 
 APT_BEGIN_EXTERN_C
 
+#define APR_HAS_QUEUE_TIMEOUT
+
 /** Opaque timer declaration */
 typedef struct apt_timer_t apt_timer_t;
 /** Opaque timer queue declaration */

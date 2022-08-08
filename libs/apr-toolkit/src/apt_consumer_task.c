@@ -140,7 +140,7 @@ static apt_bool_t apt_consumer_task_run(apt_task_t *task)
 			rv = apr_queue_pop(consumer_task->msg_queue,&msg);
 		}
 #else
-		apt_log(APT_LOG_MARK,APT_PRIO_DEBUG,"Wait for Consumer Task Messages [%s]",task_name);
+		apt_log(APT_LOG_MARK,APT_PRIO_DEBUG,"Wait for Consumer Task Messages Outside of APR_HAS_QUEUE_TIMEOUT [%s]",task_name);
 		rv = apr_queue_pop(consumer_task->msg_queue,&msg);
 #endif
 		if(rv == APR_SUCCESS) {
