@@ -359,12 +359,13 @@ static apt_bool_t vosk_recog_channel_recognize(mrcp_engine_channel_t *channel, m
 	recog_channel->dtmf_buffer = "";
 
 	recog_channel->dtmf_interdigit_timeout_timer = NULL;
-	recog_channel->dtmf_interdigit_timeout_timer = apt_poller_task_timer_create(
+	recog_channel->dtmf_interdigit_timeout_timer = apt_consumer_task_timer_create(
 													recog_channel->kaldi_engine->task,
 													vosk_recog_channel_interdigit_timeout_timer_proc,
 													recog_channel,
 													channel->pool);
-	apt_log(RECOG_LOG_MARK,APT_PRIO_INFO,"Successfully Created interdigit timeout timer-2");
+	if (recog_channel->dtmf_interdigit_timeout_timer)
+		apt_log(RECOG_LOG_MARK,APT_PRIO_INFO,"Successfully Created interdigit timeout timer-2");
 
 
 	return TRUE;
