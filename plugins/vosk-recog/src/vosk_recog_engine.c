@@ -359,7 +359,7 @@ static apt_bool_t vosk_recog_channel_recognize(mrcp_engine_channel_t *channel, m
 	recog_channel->dtmf_buffer = "";
 
 	recog_channel->dtmf_interdigit_timeout_timer = NULL;
-	recog_channel->dtmf_interdigit_timeout_timer = apt_consumer_task_timer_create(
+	recog_channel->dtmf_interdigit_timeout_timer = apt_poller_task_timer_create(
 													recog_channel->kaldi_engine->task,
 													vosk_recog_channel_interdigit_timeout_timer_proc,
 													recog_channel,
@@ -622,7 +622,7 @@ static apt_bool_t vosk_recog_stream_write(mpf_audio_stream_t *stream, const mpf_
 
 					}
 
-					/* (re)set inactivity timer on every message received */
+					/* (re)set inactivity timer on every dtmf event received */
 					if(recog_channel->dtmf_interdigit_timeout_timer) {
 						apt_log(RECOG_LOG_MARK,APT_PRIO_INFO,"Setting the timer for 3 seconds-2");
 						apt_timer_set(recog_channel->dtmf_interdigit_timeout_timer,3000);
