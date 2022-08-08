@@ -59,6 +59,7 @@ APT_DECLARE(apt_timer_queue_t*) apt_timer_queue_create(apr_pool_t *pool)
 	APR_RING_INIT(&timer_queue->head, apt_timer_t, link);
 	timer_queue->elapsed_time = 0;
 	timer_queue->reset = FALSE;
+	apt_log(APT_LOG_MARK,APT_PRIO_DEBUG,"Timer Queue Initiated [0x%x]",timer_queue);
 	return timer_queue;
 }
 
@@ -133,7 +134,7 @@ APT_DECLARE(apt_bool_t) apt_timer_queue_timeout_get(apt_timer_queue_t *timer_que
 
 	/* is queue empty */
 	if(APR_RING_EMPTY(&timer_queue->head, apt_timer_t, link)) {
-		apt_log(APT_LOG_MARK,APT_PRIO_DEBUG,"Timer queue empty. so returning false");
+		apt_log(APT_LOG_MARK,APT_PRIO_DEBUG,"Timer queue empty. so returning false [0x%x]", timer_queue);
 		return FALSE;
 	}
 
@@ -158,6 +159,7 @@ APT_DECLARE(apt_timer_t*) apt_timer_create(apt_timer_queue_t *timer_queue, apt_t
 	timer->scheduled_time = 0;
 	timer->proc = proc;
 	timer->obj = obj;
+	apt_log(APT_LOG_MARK,APT_PRIO_DEBUG,"Timer Queue Initiated [0x%x]",timer);
 	return timer;
 }
 
@@ -182,6 +184,9 @@ APT_DECLARE(apt_bool_t) apt_timer_set(apt_timer_t *timer, apr_uint32_t timeout)
 	if(APR_RING_EMPTY(&queue->head, apt_timer_t, link)) {
 		apt_log(APT_LOG_MARK,APT_PRIO_DEBUG,"Inserting the timer at the end of the tail if empty");
 		APR_RING_INSERT_TAIL(&queue->head,timer,apt_timer_t,link);
+		if(APR_RING_EMPTY(&queue->head, apt_timer_t, link)) {
+			apt_log(APT_LOG_MARK,APT_PRIO_DEBUG,"Time queue is still empty.. ERROR..");
+
 		return TRUE;
 	}
 
