@@ -126,18 +126,18 @@ static apt_bool_t apt_consumer_task_run(apt_task_t *task)
 		if(apt_timer_queue_timeout_get(consumer_task->timer_queue,&queue_timeout) == TRUE) {
 			timeout = (apr_interval_time_t)queue_timeout * 1000;
 			time_last = apr_time_now();
-			apt_log(APT_LOG_MARK,APT_PRIO_DEBUG,"Wait for Messages [%s] timeout [%u]",
+			apt_log(APT_LOG_MARK,APT_PRIO_DEBUG,"Wait for Consumer Task Messages [%s] timeout [%u]",
 				task_name, queue_timeout);
 			rv = apr_queue_timedpop(consumer_task->msg_queue,timeout,&msg);
 		}
 		else
 		{
 			timeout = -1;
-			apt_log(APT_LOG_MARK,APT_PRIO_DEBUG,"Wait for Messages [%s]",task_name);
+			apt_log(APT_LOG_MARK,APT_PRIO_DEBUG,"Wait for Consumer Task Messages [%s]",task_name);
 			rv = apr_queue_pop(consumer_task->msg_queue,&msg);
 		}
 #else
-		apt_log(APT_LOG_MARK,APT_PRIO_DEBUG,"Wait for Messages [%s]",task_name);
+		apt_log(APT_LOG_MARK,APT_PRIO_DEBUG,"Wait for Consumer Task Messages [%s]",task_name);
 		rv = apr_queue_pop(consumer_task->msg_queue,&msg);
 #endif
 		if(rv == APR_SUCCESS) {
