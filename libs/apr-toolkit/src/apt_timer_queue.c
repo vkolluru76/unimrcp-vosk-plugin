@@ -186,7 +186,7 @@ APT_DECLARE(apt_bool_t) apt_timer_set(apt_timer_t *timer, apr_uint32_t timeout)
 		APR_RING_INSERT_TAIL(&queue->head,timer,apt_timer_t,link);
 		if(APR_RING_EMPTY(&queue->head, apt_timer_t, link)) {
 			apt_log(APT_LOG_MARK,APT_PRIO_DEBUG,"Time queue is still empty.. ERROR..");
-
+		}
 		return TRUE;
 	}
 
