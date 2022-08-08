@@ -84,6 +84,7 @@ APT_DECLARE(apt_timer_t*) apt_consumer_task_timer_create(
 									apr_pool_t *pool)
 {
 #if APR_HAS_QUEUE_TIMEOUT
+	apt_log(APT_LOG_MARK,APT_PRIO_DEBUG,"Creating the consumer task Timer...");
 	return apt_timer_create(task->timer_queue,proc,obj,pool);
 #else
 	return NULL;

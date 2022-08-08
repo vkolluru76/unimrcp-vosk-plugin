@@ -168,7 +168,7 @@ APT_DECLARE(apt_bool_t) apt_timer_set(apt_timer_t *timer, apr_uint32_t timeout)
 
 	if(timer->scheduled_time) {
 		/* remove timer first */
-		apt_log(APT_LOG_MARK,APT_PRIO_INFO,"Removing Existing timer if present");
+		apt_log(APT_LOG_MARK,APT_PRIO_DEBUG,"Removing Existing timer if present");
 		apt_timer_remove(queue,timer);
 	}
 
@@ -176,7 +176,7 @@ APT_DECLARE(apt_bool_t) apt_timer_set(apt_timer_t *timer, apr_uint32_t timeout)
 	timer->scheduled_time = queue->elapsed_time + timeout;
 	apt_log(APT_LOG_MARK,APT_PRIO_DEBUG,"Set Timer 0x%x [%u]",timer,timer->scheduled_time);
 	if(APR_RING_EMPTY(&queue->head, apt_timer_t, link)) {
-		apt_log(APT_LOG_MARK,APT_PRIO_INFO,"Inserting the timer at the end of the tail if empty");
+		apt_log(APT_LOG_MARK,APT_PRIO_DEBUG,"Inserting the timer at the end of the tail if empty");
 		APR_RING_INSERT_TAIL(&queue->head,timer,apt_timer_t,link);
 		return TRUE;
 	}
