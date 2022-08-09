@@ -365,11 +365,11 @@ static apt_bool_t vosk_recog_channel_recognize(mrcp_engine_channel_t *channel, m
 	recog_channel->dtmf_interdigit_timeout_timer = NULL;
 	recog_channel->dtmf_interdigit_timeout_timer = apt_timer_create(
 													recog_channel->dtmf_interdigit_timeout_timer_queue,
-													vosk_recog_channel_interdigit_timeout_timer_proc,
+													vosk_recog_channel_interdigit_timeout_timer_proc_2,
 													recog_channel,
 													channel->pool);
 	if (recog_channel->dtmf_interdigit_timeout_timer)
-		apt_log(RECOG_LOG_MARK,APT_PRIO_INFO,"Successfully Created interdigit timeout timer-0214 [0x%x]", recog_channel->dtmf_interdigit_timeout_timer);
+		apt_log(RECOG_LOG_MARK,APT_PRIO_INFO,"Successfully Created interdigit timeout timer-0231 [0x%x]", recog_channel->dtmf_interdigit_timeout_timer);
 
 
 	return TRUE;
