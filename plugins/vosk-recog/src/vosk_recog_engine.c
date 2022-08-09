@@ -291,6 +291,7 @@ static apt_bool_t vosk_recog_channel_request_process(mrcp_engine_channel_t *chan
 /* Timer callback */
 static void vosk_recog_channel_interdigit_timeout_timer_proc(apt_timer_t *timer, void *obj)
 {
+	apt_log(RECOG_LOG_MARK,APT_PRIO_WARNING,"Inside Timer Call back function");
 	vosk_recog_channel_t *recog_channel = obj;
 	if(!recog_channel) return;
 
