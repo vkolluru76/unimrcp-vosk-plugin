@@ -125,7 +125,6 @@ struct vosk_recog_channel_t {
 
 	 /** Inactivity timer  */
 	 apt_timer_t       *dtmf_interdigit_timeout_timer;
-	 apt_timer_queue_t		*dtmf_interdigit_timeout_timer_queue;
 
 
 };
@@ -362,16 +361,14 @@ static apt_bool_t vosk_recog_channel_recognize(mrcp_engine_channel_t *channel, m
 	recog_channel->recog_request = request;
 	recog_channel->start_input_msg_sent = FALSE;
 	recog_channel->dtmf_buffer = "";
-	recog_channel->dtmf_interdigit_timeout_timer_queue = NULL;
-	recog_channel->dtmf_interdigit_timeout_timer_queue = apt_timer_queue_create(channel->pool);
 	recog_channel->dtmf_interdigit_timeout_timer = NULL;
 	recog_channel->dtmf_interdigit_timeout_timer = apt_timer_create(
-													recog_channel->dtmf_interdigit_timeout_timer_queue,
+													recog_channel->channel->termination->timer_queue,
 													vosk_recog_channel_interdigit_timeout_timer_proc,
 													recog_channel,
 													channel->pool);
 	if (recog_channel->dtmf_interdigit_timeout_timer)
-		apt_log(RECOG_LOG_MARK,APT_PRIO_INFO,"Successfully Created interdigit timeout timer-0231 [0x%x]", recog_channel->dtmf_interdigit_timeout_timer);
+		apt_log(RECOG_LOG_MARK,APT_PRIO_INFO,"Successfully Created interdigit timeout timer-0617 [0x%x]", recog_channel->dtmf_interdigit_timeout_timer);
 
 
 	return TRUE;
@@ -632,7 +629,7 @@ static apt_bool_t vosk_recog_stream_write(mpf_audio_stream_t *stream, const mpf_
 					/* (re)set inactivity timer on every dtmf event received */
 					if(recog_channel->dtmf_interdigit_timeout_timer) {
 						apt_log(RECOG_LOG_MARK,APT_PRIO_INFO,"Setting the timer for 3 seconds-2, 0x%x ", recog_channel->dtmf_interdigit_timeout_timer );
-						apt_timer_set(recog_channel->dtmf_interdigit_timeout_timer,5);
+						apt_timer_set(recog_channel->dtmf_interdigit_timeout_timer,3000);
 					}
 
 				}
