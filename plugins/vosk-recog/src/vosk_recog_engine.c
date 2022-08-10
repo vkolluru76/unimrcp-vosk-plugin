@@ -86,6 +86,36 @@ static const mpf_audio_stream_vtable_t audio_stream_vtable = {
 	NULL
 };
 
+/** MPF Termination */
+struct mpf_termination_t {
+	/** Pool to allocate memory from */
+	apr_pool_t                     *pool;
+	/** Informative name used for debugging */
+	const char                     *name;
+	/** External object */
+	void                           *obj;
+	/** Media engine to send events to */
+	void                           *media_engine;
+	/** Event handler */
+	mpf_termination_event_handler_f event_handler;
+	/** Codec manager */
+	const mpf_codec_manager_t      *codec_manager;
+	/** Timer queue */
+	apt_timer_queue_t              *timer_queue;
+	/** Termination factory entire termination created by */
+	mpf_termination_factory_t      *termination_factory;
+	/** Table of virtual methods */
+	const mpf_termination_vtable_t *vtable;
+	/** Slot in context */
+	apr_size_t                      slot;
+
+	/** Audio stream */
+	mpf_audio_stream_t             *audio_stream;
+	/** Video stream */
+	mpf_video_stream_t             *video_stream;
+};
+
+
 static apt_bool_t vosk_recog_recognition_complete(vosk_recog_channel_t *recog_channel, mrcp_recog_completion_cause_e cause);
 
 static void vosk_recog_channel_interdigit_timeout_timer_proc(apt_timer_t *timer, void *obj);
