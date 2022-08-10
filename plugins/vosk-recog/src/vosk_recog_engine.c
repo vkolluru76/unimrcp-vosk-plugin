@@ -319,7 +319,7 @@ static apt_bool_t vosk_recog_channel_recognize(mrcp_engine_channel_t *channel, m
 		return FALSE;
 	}
 
-	recog_channel->timers_started = TRUE;
+	//recog_channel->timers_started = TRUE;
 
 	/* get recognizer header */
 	recog_header = (mrcp_recog_header_t*)mrcp_resource_header_get(request);
