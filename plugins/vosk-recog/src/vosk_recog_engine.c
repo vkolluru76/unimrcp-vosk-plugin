@@ -324,9 +324,9 @@ static apt_bool_t vosk_recog_channel_recognize(mrcp_engine_channel_t *channel, m
 	/* get recognizer header */
 	recog_header = (mrcp_recog_header_t*)mrcp_resource_header_get(request);
 	if(recog_header) {
-		//if(mrcp_resource_header_property_check(request,RECOGNIZER_HEADER_START_INPUT_TIMERS) == TRUE) {
-		//	recog_channel->timers_started = recog_header->start_input_timers;
-		//}
+		if(mrcp_resource_header_property_check(request,RECOGNIZER_HEADER_START_INPUT_TIMERS) == TRUE) {
+			recog_channel->timers_started = recog_header->start_input_timers;
+		}
 		if(mrcp_resource_header_property_check(request,RECOGNIZER_HEADER_NO_INPUT_TIMEOUT) == TRUE) {
 			mpf_activity_detector_noinput_timeout_set(recog_channel->detector,recog_header->no_input_timeout);
 		}
@@ -370,9 +370,7 @@ static apt_bool_t vosk_recog_channel_recognize(mrcp_engine_channel_t *channel, m
 													recog_channel,
 													channel->pool);
 	if (recog_channel->dtmf_interdigit_timeout_timer)
-		apt_log(RECOG_LOG_MARK,APT_PRIO_INFO,"Successfully Created interdigit timeout timer-0617 [0x%x]", recog_channel->dtmf_interdigit_timeout_timer);
-
-
+		apt_log(RECOG_LOG_MARK,APT_PRIO_DEBUG,"Successfully Created interdigit timeout [0x%x]", recog_channel->dtmf_interdigit_timeout_timer);
 	return TRUE;
 }
 
