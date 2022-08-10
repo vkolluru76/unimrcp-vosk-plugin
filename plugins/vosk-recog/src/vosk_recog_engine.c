@@ -632,7 +632,7 @@ static apt_bool_t vosk_recog_stream_write(mpf_audio_stream_t *stream, const mpf_
 					/* (re)set inactivity timer on every dtmf event received */
 					if(recog_channel->dtmf_interdigit_timeout_timer) {
 						apt_log(RECOG_LOG_MARK,APT_PRIO_INFO,"Setting the timer for 3 seconds-2, 0x%x ", recog_channel->dtmf_interdigit_timeout_timer );
-						apt_timer_set(recog_channel->dtmf_interdigit_timeout_timer,3000);
+						apt_timer_set(recog_channel->dtmf_interdigit_timeout_timer,5);
 					}
 
 				}
