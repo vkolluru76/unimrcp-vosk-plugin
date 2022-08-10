@@ -88,6 +88,8 @@ static const mpf_audio_stream_vtable_t audio_stream_vtable = {
 
 static apt_bool_t vosk_recog_recognition_complete(vosk_recog_channel_t *recog_channel, mrcp_recog_completion_cause_e cause);
 
+static void vosk_recog_channel_interdigit_timeout_timer_proc(apt_timer_t *timer, void *obj);
+
 
 /** Declaration of kaldi recognizer engine */
 struct vosk_recog_engine_t {
@@ -365,7 +367,7 @@ static apt_bool_t vosk_recog_channel_recognize(mrcp_engine_channel_t *channel, m
 	recog_channel->dtmf_interdigit_timeout_timer = NULL;
 	recog_channel->dtmf_interdigit_timeout_timer = apt_timer_create(
 													recog_channel->dtmf_interdigit_timeout_timer_queue,
-													vosk_recog_channel_interdigit_timeout_timer_proc_2,
+													vosk_recog_channel_interdigit_timeout_timer_proc,
 													recog_channel,
 													channel->pool);
 	if (recog_channel->dtmf_interdigit_timeout_timer)
