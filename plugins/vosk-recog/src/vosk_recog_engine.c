@@ -336,9 +336,8 @@ static apt_bool_t vosk_recog_channel_recognize(mrcp_engine_channel_t *channel, m
 			recog_channel->timers_started = recog_header->start_input_timers;
 		}
 		if(mrcp_resource_header_property_check(request,RECOGNIZER_HEADER_NO_INPUT_TIMEOUT) == TRUE) {
-			//mpf_activity_detector_noinput_timeout_set(recog_channel->detector,recog_header->no_input_timeout);
+			mpf_activity_detector_noinput_timeout_set(recog_channel->detector,recog_header->no_input_timeout);
 			recog_channel->no_input_timeout = recog_header->no_input_timeout;
-			apt_log(RECOG_LOG_MARK,APT_PRIO_DEBUG,"Skipping to set the no input for mpf activitiy no input timeout at recognize request");
 		}
 		if(mrcp_resource_header_property_check(request,RECOGNIZER_HEADER_SPEECH_COMPLETE_TIMEOUT) == TRUE) {
 			mpf_activity_detector_silence_timeout_set(recog_channel->detector,recog_header->speech_complete_timeout);
