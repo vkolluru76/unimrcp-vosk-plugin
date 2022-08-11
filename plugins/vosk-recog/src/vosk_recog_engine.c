@@ -129,7 +129,7 @@ struct vosk_recog_channel_t {
 	 apt_timer_t       *dtmf_interdigit_timeout_timer;
 
 	 /* Max Number of DIgits */
-	 apr_uint16_t		*max_number_digits;
+	 int		*max_number_digits;
 
 
 
@@ -709,7 +709,7 @@ static apt_bool_t vosk_recog_msg_process(apt_task_t *task, apt_task_msg_t *msg)
 				recog_channel->recognizer = NULL;
 				recog_channel->dtmf_buffer = NULL;
 				recog_channel->dtmf_interdigit_timeout_timer = NULL;
-				recog_channel->max_num_digits = 1;
+				recog_channel->max_number_digits = 1;
 			}
 
 			mrcp_engine_channel_close_respond(kaldi_msg->channel);
