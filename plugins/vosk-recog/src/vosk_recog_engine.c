@@ -633,14 +633,14 @@ static apt_bool_t vosk_recog_stream_write(mpf_audio_stream_t *stream, const mpf_
 
 					}
 
-					if (strlen(recog_channel->dtmf_buffer) == 2*recog_channel->max_number_digits){
+					if (strlen(recog_channel->dtmf_buffer) == 2*(recog_channel->max_number_digits)){
 						apt_log(RECOG_LOG_MARK,APT_PRIO_DEBUG,"Max Number of Digits Reached [0x%x]", recog_channel);
 						vosk_recog_recognition_complete(recog_channel,RECOGNIZER_COMPLETION_CAUSE_SUCCESS);
 					}
 
 					/* (re)set inactivity timer on every dtmf event received */
 					if(recog_channel->dtmf_interdigit_timeout_timer) {
-						apt_log(RECOG_LOG_MARK,APT_PRIO_INFO,"Setting the timer for 3 seconds-2, 0x%x ", recog_channel->dtmf_interdigit_timeout_timer );
+						apt_log(RECOG_LOG_MARK,APT_PRIO_DEBUG,"Setting the timer for 3 seconds, 0x%x ", recog_channel->dtmf_interdigit_timeout_timer );
 						apt_timer_set(recog_channel->dtmf_interdigit_timeout_timer,3000);
 					}
 
@@ -650,7 +650,6 @@ static apt_bool_t vosk_recog_stream_write(mpf_audio_stream_t *stream, const mpf_
 						MRCP_MESSAGE_SIDRES(recog_channel->recog_request),
 						frame->event_frame.event_id,
 						frame->event_frame.duration);
-					//vosk_recog_append_dtmf_buffer_to_utterance(recog_channel, frame->event_frame.event_id);
 
 				}
 			}
