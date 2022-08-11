@@ -715,7 +715,8 @@ static apt_bool_t vosk_recog_msg_process(apt_task_t *task, apt_task_msg_t *msg)
 				vosk_recognizer_free(recog_channel->recognizer);
 				recog_channel->recognizer = NULL;
 				recog_channel->dtmf_buffer = NULL;
-				recog_channel->dtmf_interdigit_timeout_timer = NULL;
+				if (recog_channel->dtmf_interdigit_timeout_timer)
+					apt_timer_kill(recog_channel->dtmf_interdigit_timeout_timer);
 				recog_channel->max_number_digits = 1;
 			}
 
