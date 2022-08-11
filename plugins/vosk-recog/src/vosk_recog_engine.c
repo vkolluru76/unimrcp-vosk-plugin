@@ -129,7 +129,7 @@ struct vosk_recog_channel_t {
 	 apt_timer_t       *dtmf_interdigit_timeout_timer;
 
 	 /* Max Number of DIgits */
-	 int		*max_number_digits;
+	 apr_uint32_t		max_number_digits;
 
 
 
