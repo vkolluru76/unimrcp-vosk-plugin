@@ -245,6 +245,7 @@ static mrcp_engine_channel_t* vosk_recog_engine_channel_create(mrcp_engine_t *en
 	recog_channel->stop_response = NULL;
 	recog_channel->detector = mpf_activity_detector_create(pool);
 	recog_channel->audio_out = NULL;
+	recog_channel->max_number_digits = 1;
 
 	capabilities = mpf_sink_stream_capabilities_create(pool);
 	mpf_codec_capabilities_add(
@@ -407,9 +408,11 @@ static apt_bool_t vosk_recog_channel_request_dispatch(mrcp_engine_channel_t *cha
 		case RECOGNIZER_GET_PARAMS:
 			break;
 		case RECOGNIZER_DEFINE_GRAMMAR:
-			apt_log(RECOG_LOG_MARK,APT_PRIO_DEBUG,"DEFINE GRAMMAR REQUEST: %s",request);
+			apt_log(RECOG_LOG_MARK,APT_PRIO_DEBUG,"DEFINE GRAMMAR REQUEST: %s",request->body);
 			vosk_recog_channel_t *recog_channel = (vosk_recog_channel_t*)channel->method_obj;
-			recog_channel->max_number_digits = 1;
+			if (strstr(request->body,"phone-number"))
+				recog_channel->max_number_digits = 15;
+			apt_log(RECOG_LOG_MARK,APT_PRIO_DEBUG,"DEFINE GRAMMAR REQUEST: %s",request->body);
 			break;
 		case RECOGNIZER_RECOGNIZE:
 			processed = vosk_recog_channel_recognize(channel,request,response);
