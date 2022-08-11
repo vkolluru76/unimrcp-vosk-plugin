@@ -131,9 +131,6 @@ struct vosk_recog_channel_t {
 	 /* Max Number of DIgits */
 	 apr_uint32_t		max_number_digits;
 
-	 /* No input timeout */
-	 apr_uint32_t		no_input_timeout;
-
 
 
 };
@@ -302,12 +299,12 @@ static apt_bool_t vosk_recog_channel_request_process(mrcp_engine_channel_t *chan
 /* Timer callback */
 static void vosk_recog_channel_interdigit_timeout_timer_proc(apt_timer_t *timer, void *obj)
 {
-	apt_log(RECOG_LOG_MARK,APT_PRIO_WARNING,"Inside Timer Call back function");
+	apt_log(RECOG_LOG_MARK,APT_PRIO_DEBUG,"Inside Timer Call back function");
 	vosk_recog_channel_t *recog_channel = obj;
 	if(!recog_channel) return;
 
 	if(recog_channel->dtmf_interdigit_timeout_timer == timer) {
-		apt_log(RECOG_LOG_MARK,APT_PRIO_WARNING,"Interdigit Timeout Triggerred");
+		apt_log(RECOG_LOG_MARK,APT_PRIO_DEBUG,"Interdigit Timeout Trigerred");
 		vosk_recog_recognition_complete(recog_channel,RECOGNIZER_COMPLETION_CAUSE_SUCCESS);
 	}
 }
@@ -334,10 +331,11 @@ static apt_bool_t vosk_recog_channel_recognize(mrcp_engine_channel_t *channel, m
 	if(recog_header) {
 		if(mrcp_resource_header_property_check(request,RECOGNIZER_HEADER_START_INPUT_TIMERS) == TRUE) {
 			recog_channel->timers_started = recog_header->start_input_timers;
+			apt_log(RECOG_LOG_MARK,APT_PRIO_DEBUG,"Setting the timers started flag to [%d]", recog_channel->timers_started);
+
 		}
 		if(mrcp_resource_header_property_check(request,RECOGNIZER_HEADER_NO_INPUT_TIMEOUT) == TRUE) {
 			mpf_activity_detector_noinput_timeout_set(recog_channel->detector,recog_header->no_input_timeout);
-			recog_channel->no_input_timeout = recog_header->no_input_timeout;
 		}
 		if(mrcp_resource_header_property_check(request,RECOGNIZER_HEADER_SPEECH_COMPLETE_TIMEOUT) == TRUE) {
 			mpf_activity_detector_silence_timeout_set(recog_channel->detector,recog_header->speech_complete_timeout);
