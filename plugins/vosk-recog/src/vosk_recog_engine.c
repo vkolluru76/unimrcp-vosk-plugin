@@ -397,8 +397,9 @@ static apt_bool_t vosk_recog_channel_stop(mrcp_engine_channel_t *channel, mrcp_m
 static apt_bool_t vosk_recog_channel_timers_start(mrcp_engine_channel_t *channel, mrcp_message_t *request, mrcp_message_t *response)
 {
 	vosk_recog_channel_t *recog_channel = (vosk_recog_channel_t*)channel->method_obj;
-	recog_channel->timers_started = TRUE;
 	mpf_activity_detector_noinput_timeout_set(recog_channel->detector,recog_channel->no_input_timeout);
+	mpf_activity_detector_reset(recog_channel->detector);
+	recog_channel->timers_started = TRUE;
 	return mrcp_engine_channel_message_send(channel,response);
 }
 
