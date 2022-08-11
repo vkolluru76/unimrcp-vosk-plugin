@@ -414,7 +414,7 @@ static apt_bool_t vosk_recog_channel_request_dispatch(mrcp_engine_channel_t *cha
 		case RECOGNIZER_GET_PARAMS:
 			break;
 		case RECOGNIZER_DEFINE_GRAMMAR:
-			apt_log(RECOG_LOG_MARK,APT_PRIO_DEBUG,"DEFINE GRAMMAR REQUEST: %s",request->body);
+			apt_log(RECOG_LOG_MARK,APT_PRIO_DEBUG,"DEFINE GRAMMAR REQUEST: %s",request->body.buf);
 			vosk_recog_channel_t *recog_channel = (vosk_recog_channel_t*)channel->method_obj;
 			if (strstr((const char*)request->body.buf,"phone-number"))
 				recog_channel->max_number_digits = 15;
