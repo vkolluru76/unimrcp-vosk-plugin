@@ -131,6 +131,9 @@ struct vosk_recog_channel_t {
 	 /* Max Number of DIgits */
 	 apr_uint32_t		max_number_digits;
 
+	 /* No input timeout */
+	 apr_uint32_t		no_input_timeout;
+
 
 
 };
@@ -333,7 +336,9 @@ static apt_bool_t vosk_recog_channel_recognize(mrcp_engine_channel_t *channel, m
 			recog_channel->timers_started = recog_header->start_input_timers;
 		}
 		if(mrcp_resource_header_property_check(request,RECOGNIZER_HEADER_NO_INPUT_TIMEOUT) == TRUE) {
-			mpf_activity_detector_noinput_timeout_set(recog_channel->detector,recog_header->no_input_timeout);
+			//mpf_activity_detector_noinput_timeout_set(recog_channel->detector,recog_header->no_input_timeout);
+			recog_channel->no_input_timeout = recog_header->no_input_timeout;
+			apt_log(RECOG_LOG_MARK,APT_PRIO_DEBUG,"Skipping to set the no input for mpf activitiy no input timeout at recognize request");
 		}
 		if(mrcp_resource_header_property_check(request,RECOGNIZER_HEADER_SPEECH_COMPLETE_TIMEOUT) == TRUE) {
 			mpf_activity_detector_silence_timeout_set(recog_channel->detector,recog_header->speech_complete_timeout);
@@ -394,6 +399,7 @@ static apt_bool_t vosk_recog_channel_timers_start(mrcp_engine_channel_t *channel
 {
 	vosk_recog_channel_t *recog_channel = (vosk_recog_channel_t*)channel->method_obj;
 	recog_channel->timers_started = TRUE;
+	mpf_activity_detector_noinput_timeout_set(recog_channel->detector,recog_channel->no_input_timeout);
 	return mrcp_engine_channel_message_send(channel,response);
 }
 
@@ -410,9 +416,8 @@ static apt_bool_t vosk_recog_channel_request_dispatch(mrcp_engine_channel_t *cha
 		case RECOGNIZER_DEFINE_GRAMMAR:
 			apt_log(RECOG_LOG_MARK,APT_PRIO_DEBUG,"DEFINE GRAMMAR REQUEST: %s",request->body);
 			vosk_recog_channel_t *recog_channel = (vosk_recog_channel_t*)channel->method_obj;
-			if (strstr(request->body,"phone-number"))
+			if (strstr((const char*)request->body.buf,"phone-number"))
 				recog_channel->max_number_digits = 15;
-			apt_log(RECOG_LOG_MARK,APT_PRIO_DEBUG,"DEFINE GRAMMAR REQUEST: %s",request->body);
 			break;
 		case RECOGNIZER_RECOGNIZE:
 			processed = vosk_recog_channel_recognize(channel,request,response);
