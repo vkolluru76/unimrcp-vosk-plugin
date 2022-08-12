@@ -579,7 +579,6 @@ static apt_bool_t vosk_recog_stream_write(mpf_audio_stream_t *stream, const mpf_
 					apt_log(RECOG_LOG_MARK,APT_PRIO_INFO,"Detected Start of Event " APT_SIDRES_FMT " id:%d",
 						MRCP_MESSAGE_SIDRES(recog_channel->recog_request),
 						frame->event_frame.event_id);
-					recog_channel->timers_started = TRUE;
 					if (!recog_channel->start_input_msg_sent) {
 						vosk_recog_start_of_input(recog_channel);
 						recog_channel->start_input_msg_sent = TRUE;
@@ -648,6 +647,10 @@ static apt_bool_t vosk_recog_stream_write(mpf_audio_stream_t *stream, const mpf_
 						apt_log(RECOG_LOG_MARK,APT_PRIO_DEBUG,"Setting the timer for 3 seconds, 0x%x ", recog_channel->dtmf_interdigit_timeout_timer );
 						apt_timer_set(recog_channel->dtmf_interdigit_timeout_timer,3000);
 					}
+					// Reset the inactivity timeout manually as the engine can't detect the tone
+					mpf_activity_detector_reset(recog_channel->detector);
+					recog_channel->timers_started = TRUE;
+
 
 				}
 				else if(frame->marker == MPF_MARKER_END_OF_EVENT) {
