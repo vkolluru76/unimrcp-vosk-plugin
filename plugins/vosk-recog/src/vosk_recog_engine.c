@@ -309,6 +309,17 @@ static void vosk_recog_channel_interdigit_timeout_timer_proc(apt_timer_t *timer,
 	}
 }
 
+static char const* vendor_param_find(apt_pair_arr_t* vendor_specific_params, char const* name)
+{
+	apt_str_t sname;
+	if (!name) return "";
+	if (!vendor_specific_params) return "";
+	apt_string_set(&sname, name);
+	apt_pair_t const* p = apt_pair_array_find(vendor_specific_params, &sname);
+	if (!p) return "";
+	return p->value.buf;
+}
+
 
 /** Process RECOGNIZE request */
 static apt_bool_t vosk_recog_channel_recognize(mrcp_engine_channel_t *channel, mrcp_message_t *request, mrcp_message_t *response)
@@ -340,7 +351,20 @@ static apt_bool_t vosk_recog_channel_recognize(mrcp_engine_channel_t *channel, m
 		if(mrcp_resource_header_property_check(request,RECOGNIZER_HEADER_SPEECH_COMPLETE_TIMEOUT) == TRUE) {
 			mpf_activity_detector_silence_timeout_set(recog_channel->detector,recog_header->speech_complete_timeout);
 		}
-		mpf_activity_detector_speech_timeout_set(recog_channel->detector,100);
+
+		if(mrcp_generic_header_property_check(request,GENERIC_HEADER_VENDOR_SPECIFIC_PARAMS) == TRUE) {
+        		mrcp_generic_header_t *generic_header = mrcp_generic_header_get(request);
+        		if(generic_header && generic_header->vendor_specific_params)
+        			recog_channel->vendor_params = apt_pair_array_copy(generic_header->vendor_specific_params, request->pool);
+        			//param for speech-start-timeout
+        			const char*  speech_start_timeout_param = vendor_param_find(recog_channel->vendor_params, "speech-start-timeout");
+        			if (speech_start_timeout_param) {
+        			    apt_log(RECOG_LOG_MARK,APT_PRIO_DEBUG,"Custom vendor parameter value from the config file  [%s] ",speech_start_timeout_param);
+        			    apr_size_t speech_start_timeout = atoi(speech_start_timeout_param);
+                    	mpf_activity_detector_speech_timeout_set(recog_channel->detector,speech_start_timeout);
+        			}
+        	}
+
 	}
 
 	if(!recog_channel->audio_out) {
