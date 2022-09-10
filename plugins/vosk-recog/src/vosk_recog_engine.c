@@ -131,6 +131,9 @@ struct vosk_recog_channel_t {
 	 /* Max Number of DIgits */
 	 apr_uint32_t		max_number_digits;
 
+	 /* Vendor specific parameters */
+	 apt_pair_arr_t     *vendor_params;
+
 
 
 };
@@ -352,7 +355,7 @@ static apt_bool_t vosk_recog_channel_recognize(mrcp_engine_channel_t *channel, m
 			mpf_activity_detector_silence_timeout_set(recog_channel->detector,recog_header->speech_complete_timeout);
 		}
 
-		if(mrcp_generic_header_property_check(request,"Vendor-Specific-Parameters") == TRUE) {
+		if(mrcp_generic_header_property_check(request,GENERIC_HEADER_VENDOR_SPECIFIC_PARAMS) == TRUE) {
         		mrcp_generic_header_t *generic_header = mrcp_generic_header_get(request);
         		if(generic_header && generic_header->vendor_specific_params)
         			recog_channel->vendor_params = apt_pair_array_copy(generic_header->vendor_specific_params, request->pool);
@@ -396,6 +399,7 @@ static apt_bool_t vosk_recog_channel_recognize(mrcp_engine_channel_t *channel, m
 	recog_channel->start_input_msg_sent = FALSE;
 	recog_channel->dtmf_buffer = "";
 	recog_channel->dtmf_interdigit_timeout_timer = NULL;
+	recog_channel->vendor_params = NULL;
 	recog_channel->dtmf_interdigit_timeout_timer = apt_timer_create(
 													recog_channel->channel->termination->timer_queue,
 													vosk_recog_channel_interdigit_timeout_timer_proc,
@@ -558,6 +562,7 @@ static apt_bool_t vosk_recog_recognition_complete(vosk_recog_channel_t *recog_ch
 
 	recog_channel->recog_request = NULL;
 	recog_channel->dtmf_buffer = NULL;
+	recog_channel->vendor_params = NULL;
 	/* send asynch event */
 	return mrcp_engine_channel_message_send(recog_channel->channel,message);
 }
