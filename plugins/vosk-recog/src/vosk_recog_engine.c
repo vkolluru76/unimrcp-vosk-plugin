@@ -352,7 +352,7 @@ static apt_bool_t vosk_recog_channel_recognize(mrcp_engine_channel_t *channel, m
 			mpf_activity_detector_silence_timeout_set(recog_channel->detector,recog_header->speech_complete_timeout);
 		}
 
-		if(mrcp_generic_header_property_check(request,GENERIC_HEADER_VENDOR_SPECIFIC_PARAMS) == TRUE) {
+		if(mrcp_generic_header_property_check(request,"Vendor-Specific-Parameters") == TRUE) {
         		mrcp_generic_header_t *generic_header = mrcp_generic_header_get(request);
         		if(generic_header && generic_header->vendor_specific_params)
         			recog_channel->vendor_params = apt_pair_array_copy(generic_header->vendor_specific_params, request->pool);
