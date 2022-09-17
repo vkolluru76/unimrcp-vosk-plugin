@@ -561,8 +561,16 @@ static apt_bool_t vosk_recog_recognition_complete(vosk_recog_channel_t *recog_ch
 	}
 
 	recog_channel->recog_request = NULL;
-	recog_channel->dtmf_buffer = NULL;
-	recog_channel->vendor_params = NULL;
+    if(recog_channel->dtmf_buffer)
+        recog_channel->dtmf_buffer = NULL;
+    if (recog_channel->dtmf_interdigit_timeout_timer)
+        apt_timer_kill(recog_channel->dtmf_interdigit_timeout_timer);
+    if (recog_channel->dtmf_interdigit_timeout_timer)
+        recog_channel->dtmf_interdigit_timeout_timer = NULL;
+    recog_channel->max_number_digits = NULL;
+    if (recog_channel->vendor_params)
+        recog_channel->vendor_params = NULL;
+
 	/* send asynch event */
 	return mrcp_engine_channel_message_send(recog_channel->channel,message);
 }
@@ -745,7 +753,8 @@ static apt_bool_t vosk_recog_msg_process(apt_task_t *task, apt_task_msg_t *msg)
 			if(recog_channel->recognizer) {
 				vosk_recognizer_free(recog_channel->recognizer);
 				recog_channel->recognizer = NULL;
-				recog_channel->dtmf_buffer = NULL;
+				if(recog_channel->dtmf_buffer)
+				    recog_channel->dtmf_buffer = NULL;
 				if (recog_channel->dtmf_interdigit_timeout_timer)
 					apt_timer_kill(recog_channel->dtmf_interdigit_timeout_timer);
 				if (recog_channel->dtmf_interdigit_timeout_timer)
