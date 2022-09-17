@@ -748,7 +748,11 @@ static apt_bool_t vosk_recog_msg_process(apt_task_t *task, apt_task_msg_t *msg)
 				recog_channel->dtmf_buffer = NULL;
 				if (recog_channel->dtmf_interdigit_timeout_timer)
 					apt_timer_kill(recog_channel->dtmf_interdigit_timeout_timer);
-				recog_channel->max_number_digits = 1;
+				if (recog_channel->dtmf_interdigit_timeout_timer)
+				    recog_channel->dtmf_interdigit_timeout_timer = NULL;
+				recog_channel->max_number_digits = NULL;
+				if (recog_channel->vendor_params)
+				    recog_channel->vendor_params = NULL;
 			}
 
 			mrcp_engine_channel_close_respond(kaldi_msg->channel);
