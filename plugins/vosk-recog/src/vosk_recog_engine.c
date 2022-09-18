@@ -240,17 +240,30 @@ static mrcp_engine_channel_t* vosk_recog_engine_channel_create(mrcp_engine_t *en
 	mpf_stream_capabilities_t *capabilities;
 	mpf_termination_t *termination; 
 
+    if (engine == NULL)
+        apt_log(RECOG_LOG_MARK,APT_PRIO_ERROR,"Failed.. Engine passed into channel create is null");
 	/* create kaldi recog channel */
 	vosk_recog_channel_t *recog_channel = (vosk_recog_channel_t*)apr_palloc(pool,sizeof(vosk_recog_channel_t));
+
+	if (recog_channel == NULL)
+	    apt_log(RECOG_LOG_MARK,APT_PRIO_ERROR,"Failed.. to create channel");
+
 	recog_channel->kaldi_engine = (vosk_recog_engine_t*)engine->obj;
-        recog_channel->recognizer = NULL;
+    recog_channel->recognizer = NULL;
 	recog_channel->recog_request = NULL;
 	recog_channel->stop_response = NULL;
 	recog_channel->detector = mpf_activity_detector_create(pool);
+	if (recog_channel->detector == NULL)
+	    apt_log(RECOG_LOG_MARK,APT_PRIO_ERROR,"Failed.. to create detector");
+
 	recog_channel->audio_out = NULL;
 	recog_channel->max_number_digits = 1;
 
 	capabilities = mpf_sink_stream_capabilities_create(pool);
+
+	if (capabilities == NULL)
+	    apt_log(RECOG_LOG_MARK,APT_PRIO_ERROR,"Failed.. to create capabilites");
+
 	mpf_codec_capabilities_add(
 			&capabilities->codecs,
 			MPF_SAMPLE_RATE_8000 | MPF_SAMPLE_RATE_16000,
@@ -263,6 +276,9 @@ static mrcp_engine_channel_t* vosk_recog_engine_channel_create(mrcp_engine_t *en
 			capabilities,         /* stream capabilities */
 			pool);                /* pool to allocate memory from */
 
+	if (termination == NULL)
+	    apt_log(RECOG_LOG_MARK,APT_PRIO_ERROR,"Failed.. to create termination");
+
 	/* create engine channel base */
 	recog_channel->channel = mrcp_engine_channel_create(
 			engine,               /* engine */
@@ -270,6 +286,9 @@ static mrcp_engine_channel_t* vosk_recog_engine_channel_create(mrcp_engine_t *en
 			recog_channel,        /* object to associate */
 			termination,          /* associated media termination */
 			pool);                /* pool to allocate memory from */
+
+	if (recog_channel->channel == NULL)
+	    apt_log(RECOG_LOG_MARK,APT_PRIO_ERROR,"Failed.. to create final channel");
 
 	return recog_channel->channel;
 }
