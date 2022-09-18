@@ -784,6 +784,7 @@ static apt_bool_t vosk_recog_msg_process(apt_task_t *task, apt_task_msg_t *msg)
 			}
 
 			mrcp_engine_channel_close_respond(kaldi_msg->channel);
+			recog_channel = NULL;
 			break;
 		}
 		case vosk_recog_MSG_REQUEST_PROCESS:
