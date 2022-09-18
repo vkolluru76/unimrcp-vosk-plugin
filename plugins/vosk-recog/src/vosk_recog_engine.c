@@ -707,6 +707,7 @@ static apt_bool_t vosk_recog_stream_write(mpf_audio_stream_t *stream, const mpf_
 					// Reset the inactivity timeout manually as the engine can't detect the tone
 					mpf_activity_detector_reset(recog_channel->detector);
 					recog_channel->timers_started = TRUE;
+					return TRUE;
 
 
 				}
@@ -715,6 +716,7 @@ static apt_bool_t vosk_recog_stream_write(mpf_audio_stream_t *stream, const mpf_
 						MRCP_MESSAGE_SIDRES(recog_channel->recog_request),
 						frame->event_frame.event_id,
 						frame->event_frame.duration);
+					return TRUE;
 
 				}
 			}
@@ -724,7 +726,7 @@ static apt_bool_t vosk_recog_stream_write(mpf_audio_stream_t *stream, const mpf_
 			fwrite(frame->codec_frame.buffer,1,frame->codec_frame.size,recog_channel->audio_out);
 		}
 		if(recog_channel->recognizer) {
-			if (vosk_recognizer_accept_waveform(recog_channel->recognizer, (const char*)frame->codec_frame.buffer, frame->codec_frame.size)) {
+		    if (vosk_recognizer_accept_waveform(recog_channel->recognizer, (const char*)frame->codec_frame.buffer, frame->codec_frame.size)) {
 				vosk_recog_recognition_complete(recog_channel,RECOGNIZER_COMPLETION_CAUSE_SUCCESS);
 			}
 		}
