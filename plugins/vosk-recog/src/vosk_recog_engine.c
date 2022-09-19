@@ -380,10 +380,17 @@ static apt_bool_t vosk_recog_channel_recognize(mrcp_engine_channel_t *channel, m
         			recog_channel->vendor_params = apt_pair_array_copy(generic_header->vendor_specific_params, request->pool);
         			//param for speech-start-timeout
         			const char*  speech_start_timeout_param = vendor_param_find(recog_channel->vendor_params, "speech-start-timeout");
+
         			if (speech_start_timeout_param) {
         			    apt_log(RECOG_LOG_MARK,APT_PRIO_DEBUG,"Custom vendor parameter value for speech-start-timeout from the config file  [%s] ",speech_start_timeout_param);
         			    apr_size_t speech_start_timeout = atoi(speech_start_timeout_param);
                     	mpf_activity_detector_speech_timeout_set(recog_channel->detector,speech_start_timeout);
+        			}
+        			const char* detector_level_param = vendor_param_find(recog_channel->vendor_params, "detector-level");
+        			if (detector_level_param) {
+        			    apt_log(RECOG_LOG_MARK,APT_PRIO_DEBUG,"Custom vendor parameter value for detector level from the config file  [%s] ",detector_level_param);
+                        apr_size_t detector_level = atoi(detector_level_param);
+                        mpf_activity_detector_level_set(recog_channel->detector,detector_level);
         			}
         	}
 
