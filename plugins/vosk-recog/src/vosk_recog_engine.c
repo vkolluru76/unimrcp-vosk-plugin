@@ -617,9 +617,15 @@ static apt_bool_t vosk_recog_stream_write(mpf_audio_stream_t *stream, const mpf_
 		mpf_detector_event_e det_event = mpf_activity_detector_process(recog_channel->detector,frame);
 		switch(det_event) {
 			case MPF_DETECTOR_EVENT_ACTIVITY:
-				apt_log(RECOG_LOG_MARK,APT_PRIO_INFO,"Detected Voice Activity " APT_SIDRES_FMT,
-					MRCP_MESSAGE_SIDRES(recog_channel->recog_request));
-				vosk_recog_start_of_input(recog_channel);
+				if (frame->codec_frame.size	> 0) {
+				    apt_log(RECOG_LOG_MARK,APT_PRIO_INFO,"Detected Voice Activity " APT_SIDRES_FMT,
+                    					MRCP_MESSAGE_SIDRES(recog_channel->recog_request));
+                    vosk_recog_start_of_input(recog_channel);
+				}
+				else {
+				    apt_log(RECOG_LOG_MARK,APT_PRIO_INFO,"Detected Voice Activity But no frames, so returning " APT_SIDRES_FMT,
+                                    					MRCP_MESSAGE_SIDRES(recog_channel->recog_request));
+                }
 				break;
 			case MPF_DETECTOR_EVENT_INACTIVITY:
 				apt_log(RECOG_LOG_MARK,APT_PRIO_INFO,"Detected Voice Inactivity " APT_SIDRES_FMT,
