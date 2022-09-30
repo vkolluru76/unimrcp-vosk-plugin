@@ -464,7 +464,6 @@ static apt_bool_t vosk_recog_channel_request_dispatch(mrcp_engine_channel_t *cha
 			vosk_recog_channel_t *recog_channel = (vosk_recog_channel_t*)channel->method_obj;
 			if (strstr((const char*)request->body.buf,"phone-number"))
 				recog_channel->max_number_digits = 15;
-			processed = TRUE;
 			break;
 		case RECOGNIZER_RECOGNIZE:
 			processed = vosk_recog_channel_recognize(channel,request,response);
