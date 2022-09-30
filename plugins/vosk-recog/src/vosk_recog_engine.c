@@ -628,10 +628,10 @@ static apt_bool_t vosk_recog_stream_write(mpf_audio_stream_t *stream, const mpf_
 				vosk_recog_recognition_complete(recog_channel,RECOGNIZER_COMPLETION_CAUSE_SUCCESS);
 				break;
 			case MPF_DETECTOR_EVENT_NOINPUT:
-				apt_log(RECOG_LOG_MARK,APT_PRIO_INFO,"Detected Noinput " APT_SIDRES_FMT,
-					MRCP_MESSAGE_SIDRES(recog_channel->recog_request));
 				if(recog_channel->timers_started == TRUE) {
-					vosk_recog_recognition_complete(recog_channel,RECOGNIZER_COMPLETION_CAUSE_NO_INPUT_TIMEOUT);
+				    apt_log(RECOG_LOG_MARK,APT_PRIO_INFO,"Detected Noinput " APT_SIDRES_FMT,
+                    					MRCP_MESSAGE_SIDRES(recog_channel->recog_request));
+                    vosk_recog_recognition_complete(recog_channel,RECOGNIZER_COMPLETION_CAUSE_NO_INPUT_TIMEOUT);
 				}
 				else{
 				    return TRUE;
