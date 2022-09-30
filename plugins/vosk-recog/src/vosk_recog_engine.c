@@ -464,6 +464,7 @@ static apt_bool_t vosk_recog_channel_request_dispatch(mrcp_engine_channel_t *cha
 			vosk_recog_channel_t *recog_channel = (vosk_recog_channel_t*)channel->method_obj;
 			if (strstr((const char*)request->body.buf,"phone-number"))
 				recog_channel->max_number_digits = 15;
+			processed = TRUE;
 			break;
 		case RECOGNIZER_RECOGNIZE:
 			processed = vosk_recog_channel_recognize(channel,request,response);
@@ -611,7 +612,7 @@ static apt_bool_t vosk_recog_stream_write(mpf_audio_stream_t *stream, const mpf_
 		mpf_detector_event_e det_event = mpf_activity_detector_process(recog_channel->detector,frame);
 		switch(det_event) {
 			case MPF_DETECTOR_EVENT_ACTIVITY:
-				if (frame->codec_frame.size	> 0) {
+				if (frame->codec_frame & frame->codec_frame.size	> 0) {
 				    apt_log(RECOG_LOG_MARK,APT_PRIO_INFO,"Detected Voice Activity " APT_SIDRES_FMT,
                     					MRCP_MESSAGE_SIDRES(recog_channel->recog_request));
                     vosk_recog_start_of_input(recog_channel);
@@ -619,6 +620,7 @@ static apt_bool_t vosk_recog_stream_write(mpf_audio_stream_t *stream, const mpf_
 				else {
 				    apt_log(RECOG_LOG_MARK,APT_PRIO_INFO,"Detected Voice Activity But no frames, so returning " APT_SIDRES_FMT,
                                     					MRCP_MESSAGE_SIDRES(recog_channel->recog_request));
+                    return TRUE;
                 }
 				break;
 			case MPF_DETECTOR_EVENT_INACTIVITY:
@@ -632,6 +634,7 @@ static apt_bool_t vosk_recog_stream_write(mpf_audio_stream_t *stream, const mpf_
 				if(recog_channel->timers_started == TRUE) {
 					vosk_recog_recognition_complete(recog_channel,RECOGNIZER_COMPLETION_CAUSE_NO_INPUT_TIMEOUT);
 				}
+				return TRUE;
 				break;
 			default:
 				break;
