@@ -405,12 +405,15 @@ static apt_bool_t vosk_recog_channel_recognize(mrcp_engine_channel_t *channel, m
 		}
 
 	}
+	apt_log(RECOG_LOG_MARK,APT_PRIO_DEBUG,"Going to Create the engine..");
 	if(!recog_channel->recognizer) {
 		vosk_recog_engine_t *kaldi_engine = recog_channel->kaldi_engine;
 		recog_channel->recognizer = vosk_recognizer_new(kaldi_engine->model, 8000.0f);
 		vosk_recognizer_set_max_alternatives(recog_channel->recognizer, 5);
 		vosk_recognizer_set_nlsml(recog_channel->recognizer, 1);
 	}
+
+	apt_log(RECOG_LOG_MARK,APT_PRIO_DEBUG,"Successfully Created the engine..");
 
 	response->start_line.request_state = MRCP_REQUEST_STATE_INPROGRESS;
 	/* send asynchronous response */
@@ -626,7 +629,6 @@ static apt_bool_t vosk_recog_stream_write(mpf_audio_stream_t *stream, const mpf_
 				if(recog_channel->timers_started == TRUE) {
 					vosk_recog_recognition_complete(recog_channel,RECOGNIZER_COMPLETION_CAUSE_NO_INPUT_TIMEOUT);
 				}
-				return TRUE;
 				break;
 			default:
 				break;
