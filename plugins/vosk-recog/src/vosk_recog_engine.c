@@ -408,6 +408,8 @@ static apt_bool_t vosk_recog_channel_recognize(mrcp_engine_channel_t *channel, m
 	apt_log(RECOG_LOG_MARK,APT_PRIO_DEBUG,"Going to Create the engine..");
 	if(!recog_channel->recognizer) {
 		vosk_recog_engine_t *kaldi_engine = recog_channel->kaldi_engine;
+		if (!kaldi_engine)
+		    apt_log(RECOG_LOG_MARK,APT_PRIO_DEBUG,"Unable to assign the engine..");
 		recog_channel->recognizer = vosk_recognizer_new(kaldi_engine->model, 8000.0f);
 		vosk_recognizer_set_max_alternatives(recog_channel->recognizer, 5);
 		vosk_recognizer_set_nlsml(recog_channel->recognizer, 1);
