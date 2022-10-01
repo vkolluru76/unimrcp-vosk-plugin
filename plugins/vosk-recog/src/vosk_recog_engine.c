@@ -238,7 +238,10 @@ static apt_bool_t vosk_recog_engine_close(mrcp_engine_t *engine)
 static mrcp_engine_channel_t* vosk_recog_engine_channel_create(mrcp_engine_t *engine, apr_pool_t *pool)
 {
 	mpf_stream_capabilities_t *capabilities;
-	mpf_termination_t *termination; 
+	mpf_termination_t *termination;
+
+	apt_log(RECOG_LOG_MARK,APT_PRIO_ERROR,"Creating.. MRCP Recog Engine Channel");
+
 
     if (engine == NULL)
         apt_log(RECOG_LOG_MARK,APT_PRIO_ERROR,"Failed.. Engine passed into channel create is null");
@@ -594,7 +597,6 @@ static apt_bool_t vosk_recog_recognition_complete(vosk_recog_channel_t *recog_ch
         apt_timer_kill(recog_channel->dtmf_interdigit_timeout_timer);
     if (recog_channel->dtmf_interdigit_timeout_timer)
         recog_channel->dtmf_interdigit_timeout_timer = NULL;
-    recog_channel->max_number_digits = NULL;
     if (recog_channel->vendor_params)
         recog_channel->vendor_params = NULL;
 
