@@ -635,9 +635,6 @@ static apt_bool_t vosk_recog_stream_write(mpf_audio_stream_t *stream, const mpf_
                     					MRCP_MESSAGE_SIDRES(recog_channel->recog_request));
                     vosk_recog_recognition_complete(recog_channel,RECOGNIZER_COMPLETION_CAUSE_NO_INPUT_TIMEOUT);
 				}
-				else{
-				    return TRUE;
-				}
 				break;
 			default:
 				break;
