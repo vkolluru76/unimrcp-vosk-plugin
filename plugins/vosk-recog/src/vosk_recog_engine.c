@@ -240,7 +240,7 @@ static mrcp_engine_channel_t* vosk_recog_engine_channel_create(mrcp_engine_t *en
 	mpf_stream_capabilities_t *capabilities;
 	mpf_termination_t *termination;
 
-	apt_log(RECOG_LOG_MARK,APT_PRIO_ERROR,"Creating.. MRCP Recog Engine Channel");
+	apt_log(RECOG_LOG_MARK,APT_PRIO_DEBUG,"Creating.. MRCP Recog Engine Channel");
 
 
     if (engine == NULL)
@@ -634,10 +634,12 @@ static apt_bool_t vosk_recog_stream_write(mpf_audio_stream_t *stream, const mpf_
 				    apt_log(RECOG_LOG_MARK,APT_PRIO_INFO,"Detected Noinput " APT_SIDRES_FMT,
                     					MRCP_MESSAGE_SIDRES(recog_channel->recog_request));
                     vosk_recog_recognition_complete(recog_channel,RECOGNIZER_COMPLETION_CAUSE_NO_INPUT_TIMEOUT);
+                    return TRUE;
 				}
 				else {
-				    apt_log(RECOG_LOG_MARK,APT_PRIO_DEBUG,"Frame Buffer is  %s ", (const char*)frame->codec_frame.buffer );
-              	    apt_log(RECOG_LOG_MARK,APT_PRIO_DEBUG,"Frame size is  %d ", frame->codec_frame.size );
+				    //apt_log(RECOG_LOG_MARK,APT_PRIO_DEBUG,"Frame Buffer is  %s ", (const char*)frame->codec_frame.buffer );
+              	    //apt_log(RECOG_LOG_MARK,APT_PRIO_DEBUG,"Frame size is  %d ", frame->codec_frame.size );
+              	    return TRUE;
               	}
 				break;
 			default:
