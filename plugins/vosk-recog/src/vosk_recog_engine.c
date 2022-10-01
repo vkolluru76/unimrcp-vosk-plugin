@@ -637,9 +637,7 @@ static apt_bool_t vosk_recog_stream_write(mpf_audio_stream_t *stream, const mpf_
                     return TRUE;
 				}
 				else {
-				    //apt_log(RECOG_LOG_MARK,APT_PRIO_DEBUG,"Frame Buffer is  %s ", (const char*)frame->codec_frame.buffer );
-              	    //apt_log(RECOG_LOG_MARK,APT_PRIO_DEBUG,"Frame size is  %d ", frame->codec_frame.size );
-              	    return TRUE;
+				    return TRUE;
               	}
 				break;
 			default:
