@@ -623,12 +623,12 @@ static apt_bool_t vosk_recog_stream_write(mpf_audio_stream_t *stream, const mpf_
 				    apt_log(RECOG_LOG_MARK,APT_PRIO_INFO,"Detected Voice Activity " APT_SIDRES_FMT,
                     					MRCP_MESSAGE_SIDRES(recog_channel->recog_request));
                     vosk_recog_start_of_input(recog_channel);
-				break;
+                    return TRUE;
 			case MPF_DETECTOR_EVENT_INACTIVITY:
 				apt_log(RECOG_LOG_MARK,APT_PRIO_INFO,"Detected Voice Inactivity " APT_SIDRES_FMT,
 					MRCP_MESSAGE_SIDRES(recog_channel->recog_request));
 				vosk_recog_recognition_complete(recog_channel,RECOGNIZER_COMPLETION_CAUSE_SUCCESS);
-				break;
+				return TRUE;
 			case MPF_DETECTOR_EVENT_NOINPUT:
 				if(recog_channel->timers_started == TRUE) {
 				    apt_log(RECOG_LOG_MARK,APT_PRIO_INFO,"Detected Noinput " APT_SIDRES_FMT,
@@ -637,7 +637,9 @@ static apt_bool_t vosk_recog_stream_write(mpf_audio_stream_t *stream, const mpf_
                     return TRUE;
 				}
 				else {
-				    return TRUE;
+				    apt_log(RECOG_LOG_MARK,APT_PRIO_INFO,"Detected Noinput Before timers started so ignoring " APT_SIDRES_FMT,
+                                    					MRCP_MESSAGE_SIDRES(recog_channel->recog_request));
+                    return TRUE;
               	}
 				break;
 			default:
@@ -739,8 +741,11 @@ static apt_bool_t vosk_recog_stream_write(mpf_audio_stream_t *stream, const mpf_
 		}
 
 		if(recog_channel->audio_out) {
-			fwrite(frame->codec_frame.buffer,1,frame->codec_frame.size,recog_channel->audio_out);
-		}
+		    if (frame->codec_frame.size > 0)
+			    fwrite(frame->codec_frame.buffer,1,frame->codec_frame.size,recog_channel->audio_out);
+			else
+			    apt_log(RECOG_LOG_MARK,APT_PRIO_INFO,"Ignoring Empty Frame [0x%x]", recog_channel);
+    	}
 		if(recog_channel->recognizer) {
 		    if (vosk_recognizer_accept_waveform(recog_channel->recognizer, (const char*)frame->codec_frame.buffer, frame->codec_frame.size)) {
 				vosk_recog_recognition_complete(recog_channel,RECOGNIZER_COMPLETION_CAUSE_SUCCESS);
