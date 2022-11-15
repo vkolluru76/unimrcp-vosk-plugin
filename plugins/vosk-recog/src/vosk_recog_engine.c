@@ -543,6 +543,13 @@ static const char* vosk_recog_create_dtmf_body_response(vosk_recog_channel_t *re
 	return dtmf_body;
 }
 
+void fast_strncat(char *dest, const char *src, size_t *size)
+{
+    if (dest && src && size)
+        while ((dest[*size] = *src++))
+            *size += 1;
+}
+
 void strreplace(char **str, const char *old, const char *new_)
 {
     size_t i, count_old = 0, len_o = strlen(old), len_n = strlen(new_);
