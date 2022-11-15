@@ -543,6 +543,49 @@ static const char* vosk_recog_create_dtmf_body_response(vosk_recog_channel_t *re
 	return dtmf_body;
 }
 
+void strreplace(char **str, const char *old, const char *new_)
+{
+    size_t i, count_old = 0, len_o = strlen(old), len_n = strlen(new_);
+    const char *temp = (const char *)(*str);
+    for (i = 0; temp[i] != '\0'; ++i)
+    {
+        if (strstr((const char *)&temp[i], old) == &temp[i])
+        {
+            count_old++;
+            i += len_o - 1;
+        }
+    }
+    char *buff = calloc((i + count_old * (len_n - len_o) + 1), sizeof(char));
+    if (!buff)
+    {
+        perror("bad allocation\n");
+        exit(EXIT_FAILURE);
+    }
+    i = 0;
+    while (*temp)
+    {
+        if (strstr(temp, old) == temp)
+        {
+            size_t x = 0;
+            fast_strncat(&buff[i], new_, &x);
+            i += len_n;
+            temp += len_o;
+        }
+        else
+            buff[i++] = *temp++;
+    }
+    free(*str);
+    *str = calloc(i + 1, sizeof(char));
+    if (!(*str))
+    {
+        perror("bad allocation\n");
+        exit(EXIT_FAILURE);
+    }
+    i = 0;
+    fast_strncat(*str, (const char *)buff, &i);
+    free(buff);
+}
+
 
 /* Raise kaldi RECOGNITION-COMPLETE event */
 static apt_bool_t vosk_recog_recognition_complete(vosk_recog_channel_t *recog_channel, mrcp_recog_completion_cause_e cause)
