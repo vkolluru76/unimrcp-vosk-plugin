@@ -401,7 +401,7 @@ static apt_bool_t vosk_recog_channel_recognize(mrcp_engine_channel_t *channel, m
 		recog_channel->utterance_file_name = apr_psprintf(channel->pool,"utter-%dkHz-%s.pcm",
 							descriptor->sampling_rate/1000,
 							request->channel_id.session_id.buf);
-		char *file_path = apt_vardir_filepath_get(dir_layout,file_name,channel->pool);
+		char *file_path = apt_vardir_filepath_get(dir_layout,recog_channel->utterance_file_name,channel->pool);
 		if(file_path) {
 			apt_log(RECOG_LOG_MARK,APT_PRIO_INFO,"Open Utterance Output File [%s] for Writing",file_path);
 			recog_channel->audio_out = fopen(file_path,"wb");
