@@ -116,6 +116,9 @@ struct vosk_recog_channel_t {
 	mpf_activity_detector_t *detector;
 	/** File to write utterance to */
 	FILE                    *audio_out;
+
+	/** File name to write utterance to */
+	char                   *utterance_file_name;
 	/** Actual recognizer **/
 	VoskRecognizer          *recognizer;
 
@@ -395,7 +398,7 @@ static apt_bool_t vosk_recog_channel_recognize(mrcp_engine_channel_t *channel, m
 
 	if(!recog_channel->audio_out) {
 		const apt_dir_layout_t *dir_layout = channel->engine->dir_layout;
-		char *file_name = apr_psprintf(channel->pool,"utter-%dkHz-%s.pcm",
+		recog_channel->utterance_file_name = apr_psprintf(channel->pool,"utter-%dkHz-%s.pcm",
 							descriptor->sampling_rate/1000,
 							request->channel_id.session_id.buf);
 		char *file_path = apt_vardir_filepath_get(dir_layout,file_name,channel->pool);
@@ -588,6 +591,18 @@ static apt_bool_t vosk_recog_recognition_complete(vosk_recog_channel_t *recog_ch
 				mrcp_generic_header_property_add(message,GENERIC_HEADER_CONTENT_TYPE);
 			}
 		}
+		{
+		    if (recog_channel->audio_out){
+		        // set a custom mrcp header to point to the input wave file that was recorded
+		        /* get/allocate recognizer header */
+                recog_header_input_wav_form = (mrcp_recog_header_t*)mrcp_resource_header_prepare(message);
+                if(recog_header_input_wav_form) {
+                    apt_string_assign(&recog_header_input_wav_form->input_waveform_uri, recog_channel->utterance_file_name, message->pool);
+                	mrcp_resource_header_property_add(message,RECOGNIZER_HEADER_INPUT_WAVEFORM_URI);
+                }
+		    }
+		}
+
 	}
 
 	recog_channel->recog_request = NULL;
