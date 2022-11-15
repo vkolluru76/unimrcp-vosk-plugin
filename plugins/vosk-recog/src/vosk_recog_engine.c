@@ -595,11 +595,11 @@ static apt_bool_t vosk_recog_recognition_complete(vosk_recog_channel_t *recog_ch
 		    if (recog_channel->audio_out){
 		        // set a custom mrcp header to point to the input wave file that was recorded
 		        /* get/allocate recognizer header */
-		        mrcp_recog_header_t *recog_header_input_wav_form;
-                recog_header_input_wav_form = (mrcp_recog_header_t*)mrcp_resource_header_prepare(message);
-                if(recog_header_input_wav_form) {
-                    apt_string_assign(&recog_header_input_wav_form->input_waveform_uri, recog_channel->utterance_file_name, message->pool);
-                	mrcp_resource_header_property_add(message,RECOGNIZER_HEADER_INPUT_WAVEFORM_URI);
+		        mrcp_recog_header_t *recog_header_wav_form_uri;
+                recog_header_wav_form_uri = (mrcp_recog_header_t*)mrcp_resource_header_prepare(message);
+                if(recog_header_wav_form_uri) {
+                    apt_string_assign(&recog_header_wav_form_uri->waveform_uri, recog_channel->utterance_file_name, message->pool);
+                	mrcp_resource_header_property_add(message,RECOGNIZER_HEADER_WAVEFORM_URI);
                 }
 		    }
 		}
