@@ -543,56 +543,43 @@ static const char* vosk_recog_create_dtmf_body_response(vosk_recog_channel_t *re
 	return dtmf_body;
 }
 
-void fast_strncat(char *dest, const char *src, size_t *size)
+char* replaceWord(const char* s, const char* oldW,
+                const char* newW)
 {
-    if (dest && src && size)
-        while ((dest[*size] = *src++))
-            *size += 1;
-}
+    char* result;
+    int i, cnt = 0;
+    int newWlen = strlen(newW);
+    int oldWlen = strlen(oldW);
 
-void strreplace(char **str, const char *old, const char *new_)
-{
-    size_t i, count_old = 0, len_o = strlen(old), len_n = strlen(new_);
-    const char *temp = (const char *)(*str);
-    for (i = 0; temp[i] != '\0'; ++i)
-    {
-        if (strstr((const char *)&temp[i], old) == &temp[i])
-        {
-            count_old++;
-            i += len_o - 1;
+    // Counting the number of times old word
+    // occur in the string
+    for (i = 0; s[i] != '\0'; i++) {
+        if (strstr(&s[i], oldW) == &s[i]) {
+            cnt++;
+
+            // Jumping to index after the old word.
+            i += oldWlen - 1;
         }
     }
-    char *buff = calloc((i + count_old * (len_n - len_o) + 1), sizeof(char));
-    if (!buff)
-    {
-        perror("bad allocation\n");
-        exit(EXIT_FAILURE);
-    }
+
+    // Making new string of enough length
+    result = (char*)malloc(i + cnt * (newWlen - oldWlen) + 1);
+
     i = 0;
-    while (*temp)
-    {
-        if (strstr(temp, old) == temp)
-        {
-            size_t x = 0;
-            fast_strncat(&buff[i], new_, &x);
-            i += len_n;
-            temp += len_o;
+    while (*s) {
+        // compare the substring with the result
+        if (strstr(s, oldW) == s) {
+            strcpy(&result[i], newW);
+            i += newWlen;
+            s += oldWlen;
         }
         else
-            buff[i++] = *temp++;
+            result[i++] = *s++;
     }
-    free(*str);
-    *str = calloc(i + 1, sizeof(char));
-    if (!(*str))
-    {
-        perror("bad allocation\n");
-        exit(EXIT_FAILURE);
-    }
-    i = 0;
-    fast_strncat(*str, (const char *)buff, &i);
-    free(buff);
-}
 
+    result[i] = '\0';
+    return result;
+}
 
 /* Raise kaldi RECOGNITION-COMPLETE event */
 static apt_bool_t vosk_recog_recognition_complete(vosk_recog_channel_t *recog_channel, mrcp_recog_completion_cause_e cause)
@@ -629,8 +616,10 @@ static apt_bool_t vosk_recog_recognition_complete(vosk_recog_channel_t *recog_ch
 			}
 			else {
 				const char *result = vosk_recognizer_result(recog_channel->recognizer);
-                strreplace(&result, "default", recog_channel->utterance_file_name);
-				apt_string_assign_n(&message->body,result,strlen(result),message->pool);
+				char* updated_result = NULL;
+				updated_result = replaceWord(result, "default", recog_channel->utterance_file_name);
+                apt_string_assign_n(&message->body,updated_result,strlen(updated_result),message->pool);
+                free(updated_result);
 			}
 		}
 		{
