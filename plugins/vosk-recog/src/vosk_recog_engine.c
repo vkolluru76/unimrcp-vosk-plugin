@@ -579,6 +579,7 @@ static apt_bool_t vosk_recog_recognition_complete(vosk_recog_channel_t *recog_ch
 			}
 			else {
 				const char *result = vosk_recognizer_result(recog_channel->recognizer);
+                strreplace(&result, "default", recog_channel->utterance_file_name);
 				apt_string_assign_n(&message->body,result,strlen(result),message->pool);
 			}
 		}
