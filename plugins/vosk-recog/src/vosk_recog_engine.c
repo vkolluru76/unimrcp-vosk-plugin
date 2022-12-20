@@ -543,44 +543,6 @@ static const char* vosk_recog_create_dtmf_body_response(vosk_recog_channel_t *re
 	return dtmf_body;
 }
 
-char* replaceWord(const char* s, const char* oldW,
-                const char* newW)
-{
-    char* result;
-    int i, cnt = 0;
-    int newWlen = strlen(newW);
-    int oldWlen = strlen(oldW);
-
-    // Counting the number of times old word
-    // occur in the string
-    for (i = 0; s[i] != '\0'; i++) {
-        if (strstr(&s[i], oldW) == &s[i]) {
-            cnt++;
-
-            // Jumping to index after the old word.
-            i += oldWlen - 1;
-        }
-    }
-
-    // Making new string of enough length
-    result = (char*)malloc(i + cnt * (newWlen - oldWlen) + 1);
-
-    i = 0;
-    while (*s) {
-        // compare the substring with the result
-        if (strstr(s, oldW) == s) {
-            strcpy(&result[i], newW);
-            i += newWlen;
-            s += oldWlen;
-        }
-        else
-            result[i++] = *s++;
-    }
-
-    result[i] = '\0';
-    return result;
-}
-
 /* Raise kaldi RECOGNITION-COMPLETE event */
 static apt_bool_t vosk_recog_recognition_complete(vosk_recog_channel_t *recog_channel, mrcp_recog_completion_cause_e cause)
 {
@@ -616,10 +578,8 @@ static apt_bool_t vosk_recog_recognition_complete(vosk_recog_channel_t *recog_ch
 			}
 			else {
 				const char *result = vosk_recognizer_result(recog_channel->recognizer);
-				char* updated_result = NULL;
-				updated_result = replaceWord(result, "default", recog_channel->utterance_file_name);
-                apt_string_assign_n(&message->body,updated_result,strlen(updated_result),message->pool);
-                free(updated_result);
+				apt_string_assign_n(&message->body,result,strlen(result),message->pool);
+                free(result);
 			}
 		}
 		{
